@@ -1362,7 +1362,7 @@ const PROJECT_DEFINITIONS = {
     id: "personal-assistant",
     label: "Personal Assistant",
     summary:
-      "A planned suite of personal productivity and assistant modules kept visible as one navigable roadmap surface.",
+      "A live V1 personal productivity suite: task manager, calendar, email accounts, social planning, and fitness dashboard — all backed by SQLite and accessible at /pa.",
     masterAgentId: "personal-assistant-master",
     theme: {
       accent: "#0F766E",
@@ -1371,9 +1371,9 @@ const PROJECT_DEFINITIONS = {
     },
     hero: {
       eyebrow: "Personal ops suite",
-      title: "Modules, lanes, and provider boundaries.",
+      title: "Tasks, calendar, email, social, and fitness in one command center.",
       summary:
-        "Personal Assistant is mostly scaffolded today. The page should make the module roadmap, grouped work lanes, and privacy-sensitive boundaries explicit without pretending there are live deployments already.",
+        "Personal Assistant V1 is live. Five modules are backed by local SQLite storage with full CRUD, a unified dashboard at /pa, and clearly marked operator boundaries for email IMAP/SMTP, social publishing tokens, and fitness wearable sync.",
     },
     featuredCards: [
       {
@@ -1417,9 +1417,9 @@ const PROJECT_DEFINITIONS = {
       },
     ],
     statusStrip: [
-      { tone: "accent", value: "5 modules", label: "Task, calendar, email, social, fitness" },
+      { tone: "accent", value: "5 modules live", label: "Task, calendar, email, social, fitness — all at /pa" },
       { tone: "info", value: "3 grouped lanes", label: "Task+Calendar, Email+Social, Fitness" },
-      { tone: "muted", value: "Roadmap-first", label: "No standalone live deployment yet" },
+      { tone: "muted", value: "Operator-owned", label: "Email IMAP/SMTP, social tokens, and wearable sync require operator steps" },
     ],
     agentSurfaces: [
       {
@@ -1460,52 +1460,122 @@ const PROJECT_DEFINITIONS = {
     ],
     applicationSurfaces: [
       {
+        id: "personal-assistant-home",
+        kind: "application",
+        label: "PA Dashboard",
+        description:
+          "Unified V1 overview: stat cards for all 5 modules, module tiles, open task feed, and upcoming events.",
+        status: "active",
+        action: internalAction("/pa", "Open PA dashboard"),
+      },
+      {
         id: "personal-assistant-task-manager",
         kind: "application",
         label: "Task Manager",
         description:
-          "Placeholder productivity module for task capture and routing.",
-        status: "stub",
-        action: panelAction("View module details"),
+          "Full kanban board (Todo / In Progress / Done) with CRUD, priority badges, due dates, and filter pills. Backed by /api/pa/tasks.",
+        status: "active",
+        action: internalAction("/pa/tasks", "Open task manager"),
       },
       {
         id: "personal-assistant-calendar-management",
         kind: "application",
-        label: "Calendar Management",
+        label: "Calendar",
         description:
-          "Placeholder calendar module for event and scheduling orchestration.",
-        status: "stub",
-        action: panelAction("View module details"),
+          "Month-grid calendar with event pills, click-to-create, and upcoming events list. Backed by /api/pa/calendar.",
+        status: "active",
+        action: internalAction("/pa/calendar", "Open calendar"),
       },
       {
         id: "personal-assistant-email-management",
         kind: "application",
-        label: "Email Management",
+        label: "Email Accounts",
         description:
-          "Placeholder email operations module with token and consent requirements.",
-        status: "stub",
-        action: panelAction("View module details"),
+          "Email account model with provider/status tracking, per-account audit log, and Operator Setup Guide. Mailbox creation and IMAP/SMTP config remain operator-owned.",
+        status: "active",
+        action: internalAction("/pa/email", "Open email"),
       },
       {
         id: "personal-assistant-social-media-management",
         kind: "application",
-        label: "Social Media Management",
+        label: "Social Planning",
         description:
-          "Placeholder social workflow module.",
-        status: "stub",
-        action: panelAction("View module details"),
+          "Content draft board with status lifecycle (Draft / Scheduled / Published), platform pills, and character count. Live publishing tokens are operator-owned.",
+        status: "active",
+        action: internalAction("/pa/social", "Open social"),
       },
       {
         id: "personal-assistant-fitness-dashboard",
         kind: "application",
         label: "Fitness Dashboard",
         description:
-          "Placeholder Apple Watch and health-data dashboard module.",
-        status: "stub",
-        action: panelAction("View module details"),
+          "Activity log table, weekly/monthly stats, goals with progress bars, and manual log entry. Wearable sync is operator-owned. Data stays in local SQLite.",
+        status: "active",
+        action: internalAction("/pa/fitness", "Open fitness"),
       },
     ],
     endpointSurfaces: [
+      {
+        id: "pa-overview-api",
+        kind: "endpoint",
+        label: "PA Overview API",
+        description:
+          "Cross-module summary: task counts by status, upcoming events, recent fitness logs, social drafts, and email account count.",
+        status: "active",
+        action: panelAction("View endpoint contract"),
+        detail: detail(
+          "The overview API is the canonical data feed for the /pa dashboard. It returns a daily briefing shape covering all five modules.",
+          [
+            meta("Route", "GET /api/pa/overview"),
+            meta("Fields", "taskCounts, upcomingEvents, recentTasks, recentLogs, socialDrafts, stats"),
+          ],
+        ),
+      },
+      {
+        id: "pa-tasks-api",
+        kind: "endpoint",
+        label: "Tasks API",
+        description: "Full CRUD for personal tasks with status, priority, due date, and tags.",
+        status: "active",
+        action: panelAction("View endpoint contract"),
+        detail: detail("", [meta("Routes", "GET/POST /api/pa/tasks, PATCH/DELETE /api/pa/tasks/:id")]),
+      },
+      {
+        id: "pa-calendar-api",
+        kind: "endpoint",
+        label: "Calendar API",
+        description: "Full CRUD for calendar events with start/end times, location, and all-day support.",
+        status: "active",
+        action: panelAction("View endpoint contract"),
+        detail: detail("", [meta("Routes", "GET/POST /api/pa/calendar, PATCH/DELETE /api/pa/calendar/:id")]),
+      },
+      {
+        id: "pa-email-api",
+        kind: "endpoint",
+        label: "Email Accounts API",
+        description: "Account model with audit log trail. Mailbox credentials and IMAP/SMTP config are operator-owned.",
+        status: "active",
+        action: panelAction("View endpoint contract"),
+        detail: detail("", [meta("Routes", "GET/POST /api/pa/email/accounts, PATCH/DELETE /:id, GET /:id/audit")]),
+      },
+      {
+        id: "pa-social-api",
+        kind: "endpoint",
+        label: "Social Drafts API",
+        description: "Full CRUD for social drafts with platform, status lifecycle, scheduled time, and media URLs.",
+        status: "active",
+        action: panelAction("View endpoint contract"),
+        detail: detail("", [meta("Routes", "GET/POST /api/pa/social, PATCH/DELETE /api/pa/social/:id")]),
+      },
+      {
+        id: "pa-fitness-api",
+        kind: "endpoint",
+        label: "Fitness API",
+        description: "Activity logs (POST/DELETE) and goals (GET/POST/PATCH). No live wearable sync in V1.",
+        status: "active",
+        action: panelAction("View endpoint contract"),
+        detail: detail("", [meta("Routes", "/api/pa/fitness/logs and /api/pa/fitness/goals")]),
+      },
       {
         id: "pa-queue-errors",
         kind: "endpoint",
@@ -1514,19 +1584,6 @@ const PROJECT_DEFINITIONS = {
           "Shared work queue and error surfaces for assistant delivery.",
         status: "active",
         action: internalAction("/kanban", "Open Kanban"),
-      },
-      {
-        id: "pa-runtime-meta",
-        kind: "endpoint",
-        label: "Runtime Diagnostics",
-        description:
-          "Runtime and workspace overview surfaces relevant to the planned suite.",
-        status: "active",
-        action: panelAction("View endpoint details"),
-        detail: detail(
-          "The rebuilt dashboard uses shared runtime metadata and workspace APIs for planned suites too.",
-          [meta("Routes", "/api/meta, /api/chat/agents/:agentId/workspace")],
-        ),
       },
     ],
     docSurfaces: [

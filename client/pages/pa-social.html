@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PA — Social</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #0F766E;
+      --accent-light: #14B8A6;
+      --accent-hover: #0D6B64;
+      --shell: #134E4A;
+      --surface-tint: #F0FDFA;
+      --canvas: #F8FAFC;
+      --card: #FFFFFF;
+      --border: #E2E8F0;
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --sidebar-width: 240px;
+      --radius: 20px;
+      --radius-sm: 10px;
+    }
+
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--canvas); color: var(--text-primary); display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar { width: var(--sidebar-width); min-height: 100vh; background: var(--shell); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+    .sidebar-logo { padding: 28px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-logo span { font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.3px; }
+    .sidebar-logo small { display: block; font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 400; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: rgba(255,255,255,0.65); text-decoration: none; font-size: 13.5px; font-weight: 500; transition: background 0.15s, color 0.15s; }
+    .sidebar-nav a:hover { background: rgba(255,255,255,0.08); color: #FFFFFF; }
+    .sidebar-nav a.active { background: rgba(20,184,166,0.18); color: #FFFFFF; }
+    .sidebar-nav a .icon { width: 18px; height: 18px; opacity: 0.8; flex-shrink: 0; }
+    .sidebar-nav a.active .icon { opacity: 1; }
+    .sidebar-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 8px 12px; }
+    .sidebar-back { padding: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-back a { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.45); text-decoration: none; font-size: 12.5px; padding: 8px 12px; border-radius: 8px; transition: color 0.15s, background 0.15s; }
+    .sidebar-back a:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }
+
+    /* ── Main ── */
+    .main { flex: 1; overflow-x: hidden; min-width: 0; }
+    .page-header { padding: 40px 40px 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+    .page-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
+    .page-content { padding: 24px 40px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; border: none; transition: background 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: #F1F5F9; }
+
+    /* ── Notice Banner ── */
+    .notice-banner { background: #FFFBEB; border: 1.5px solid #FCD34D; border-radius: 14px; padding: 13px 16px; display: flex; align-items: flex-start; gap: 11px; }
+    .notice-banner-icon { width: 18px; height: 18px; color: #D97706; flex-shrink: 0; margin-top: 1px; }
+    .notice-banner-text { font-size: 13px; color: #92400E; line-height: 1.5; }
+
+    /* ── Filter Tabs ── */
+    .filter-tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px; width: fit-content; }
+    .tab { padding: 7px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--text-secondary); transition: all 0.15s; }
+    .tab.active, .tab:hover { background: var(--surface-tint); color: var(--accent); }
+    .tab.active { background: var(--accent); color: #fff; }
+    .tab.active:hover { background: var(--accent-hover); }
+
+    /* ── Content Grid ── */
+    .content-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+
+    .content-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: box-shadow 0.15s;
+    }
+
+    .content-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+
+    .content-card-top { display: flex; align-items: flex-start; gap: 10px; }
+
+    /* Platform pills */
+    .platform-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; flex-shrink: 0; }
+    .platform-twitter { background: #EFF6FF; color: #1D4ED8; }
+    .platform-instagram { background: #FDF2F8; color: #9D174D; }
+    .platform-linkedin { background: #F0FDFA; color: #0F766E; }
+    .platform-facebook { background: #EFF6FF; color: #1E3A5F; }
+
+    .content-body { font-size: 13.5px; color: var(--text-primary); line-height: 1.55; flex: 1; word-break: break-word; }
+    .content-body-preview { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    .status-draft { background: #F1F5F9; color: #475569; }
+    .status-scheduled { background: #FEF3C7; color: #D97706; }
+    .status-published { background: #DCFCE7; color: #16A34A; }
+    .status-ready { background: var(--surface-tint); color: var(--accent); }
+
+    .content-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .scheduled-date { font-size: 11.5px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+
+    .tag-list { display: flex; gap: 5px; flex-wrap: wrap; }
+    .tag { font-size: 10.5px; font-weight: 600; background: #F1F5F9; color: var(--text-secondary); padding: 2px 7px; border-radius: 5px; }
+
+    .content-actions { display: flex; gap: 7px; }
+    .act-btn { padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text-secondary); transition: all 0.12s; }
+    .act-btn:hover { background: var(--surface-tint); border-color: var(--accent); color: var(--accent); }
+    .act-btn-danger { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+    .act-btn-danger:hover { background: #FEE2E2; border-color: #FCA5A5; color: #B91C1C; }
+
+    .empty-state { grid-column: 1 / -1; padding: 48px; text-align: center; color: var(--text-muted); font-size: 13.5px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+
+    /* ── Modal ── */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 100; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--card); border-radius: var(--radius); width: 100%; max-width: 520px; margin: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.18); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
+    .modal-header { padding: 22px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 6px; transition: color 0.12s, background 0.12s; line-height: 1; }
+    .modal-close:hover { color: var(--text-primary); background: #F1F5F9; }
+    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13.5px; font-family: inherit; color: var(--text-primary); background: var(--canvas); transition: border-color 0.15s; outline: none; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); background: #fff; }
+    .form-textarea { resize: vertical; min-height: 120px; }
+    .modal-footer { padding: 16px 24px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0; }
+
+    .char-count { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text-primary); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 500; z-index: 200; box-shadow: 0 6px 24px rgba(0,0,0,0.15); transform: translateY(80px); opacity: 0; transition: all 0.25s; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>Personal Assistant</span>
+    <small>Command Center</small>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/pa">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="/pa/tasks">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Tasks
+    </a>
+    <a href="/pa/calendar">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Calendar
+    </a>
+    <a href="/pa/email">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      Email
+    </a>
+    <a href="/pa/social" class="active">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+      Social
+    </a>
+    <a href="/pa/fitness">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Fitness
+    </a>
+    <div class="sidebar-divider"></div>
+  </nav>
+  <div class="sidebar-back">
+    <a href="/">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Home
+    </a>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">Personal Assistant</p>
+      <h1 class="page-title">Social Content Planning</h1>
+    </div>
+    <button class="btn btn-primary" id="new-draft-btn">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      New draft
+    </button>
+  </div>
+
+  <div class="page-content">
+
+    <!-- Publishing Boundary Notice -->
+    <div class="notice-banner">
+      <svg class="notice-banner-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="notice-banner-text">
+        <strong>Publishing boundary:</strong> Live publishing requires platform API tokens (Twitter/X API key, Instagram Graph API, LinkedIn OAuth, Facebook Page token). Set content status to <strong>scheduled</strong> or <strong>ready</strong> here — actual posting is an operator-configured step performed server-side.
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div class="filter-tabs">
+        <button class="tab active" data-filter="all">All</button>
+        <button class="tab" data-filter="draft">Draft</button>
+        <button class="tab" data-filter="scheduled">Scheduled</button>
+        <button class="tab" data-filter="published">Published</button>
+      </div>
+      <span id="post-count" style="font-size:12.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">0 posts</span>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid" id="content-grid">
+      <div class="empty-state">Loading content...</div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ── Modal ── -->
+<div class="modal-backdrop" id="post-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">New Draft</span>
+      <button class="modal-close" id="modal-close-btn" aria-label="Close">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modal-post-id" value="" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label" for="field-platform">Platform</label>
+          <select class="form-select" id="field-platform">
+            <option value="twitter">Twitter / X</option>
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="facebook">Facebook</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="field-status">Status</label>
+          <select class="form-select" id="field-status">
+            <option value="draft">Draft</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="ready">Ready</option>
+            <option value="published">Published</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="field-body">Content</label>
+        <textarea class="form-textarea" id="field-body" placeholder="Write your post content..." oninput="updateCharCount(this)"></textarea>
+        <div class="char-count" id="char-count">0 characters</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="field-scheduled">Schedule For</label>
+        <input class="form-input" id="field-scheduled" type="datetime-local" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="field-tags">Tags</label>
+        <input class="form-input" id="field-tags" type="text" placeholder="Comma-separated tags, e.g. marketing, launch, q4" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modal-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn">Save Draft</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let allPosts = [];
+  let activeFilter = 'all';
+  let editingId = null;
+
+  function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function showToast(msg, duration = 2800) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  function updateCharCount(el) {
+    document.getElementById('char-count').textContent = `${el.value.length} characters`;
+  }
+
+  function platformPill(p) {
+    const labels = { twitter: 'Twitter / X', instagram: 'Instagram', linkedin: 'LinkedIn', facebook: 'Facebook' };
+    const cls = { twitter: 'platform-twitter', instagram: 'platform-instagram', linkedin: 'platform-linkedin', facebook: 'platform-facebook' };
+    return `<span class="platform-pill ${cls[p] || 'platform-twitter'}">${escHtml(labels[p] || p)}</span>`;
+  }
+
+  function statusBadge(s) {
+    const cls = { draft: 'status-draft', scheduled: 'status-scheduled', published: 'status-published', ready: 'status-ready' };
+    return `<span class="status-badge ${cls[s] || 'status-draft'}">${escHtml(s)}</span>`;
+  }
+
+  function fmtDatetimeLocal(dt) {
+    if (!dt) return '';
+    const d = new Date(dt);
+    if (isNaN(d)) return '';
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('content-grid');
+    let posts = allPosts;
+    if (activeFilter !== 'all') {
+      posts = posts.filter(p => p.status === activeFilter);
+    }
+
+    document.getElementById('post-count').textContent = `${posts.length} post${posts.length !== 1 ? 's' : ''}`;
+
+    if (posts.length === 0) {
+      grid.innerHTML = `<div class="empty-state">No ${activeFilter === 'all' ? '' : activeFilter + ' '}posts found. Create a new draft to get started.</div>`;
+      return;
+    }
+
+    grid.innerHTML = posts.map(post => {
+      const tags = (post.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+      const tagHtml = tags.length ? `<div class="tag-list">${tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>` : '';
+      const schedHtml = post.scheduled_for ? `<span class="scheduled-date">${new Date(post.scheduled_for).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}</span>` : '';
+      return `<div class="content-card" data-id="${post.id}">
+        <div class="content-card-top">
+          ${platformPill(post.platform)}
+          <div style="margin-left:auto;">${statusBadge(post.status)}</div>
+        </div>
+        <div class="content-body content-body-preview">${escHtml(post.body)}</div>
+        <div class="content-meta">
+          ${schedHtml}
+          ${tagHtml}
+        </div>
+        <div class="content-actions">
+          <button class="act-btn" data-id="${post.id}" data-action="edit">Edit</button>
+          <button class="act-btn act-btn-danger" data-id="${post.id}" data-action="delete">Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadPosts() {
+    try {
+      const res = await fetch('/api/pa/social');
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      allPosts = d.entries || [];
+    } catch(e) {
+      allPosts = [];
+    }
+    renderGrid();
+  }
+
+  function openModal(post) {
+    editingId = post ? post.id : null;
+    document.getElementById('modal-title').textContent = post ? 'Edit Post' : 'New Draft';
+    document.getElementById('modal-post-id').value = post ? post.id : '';
+    document.getElementById('field-platform').value = post ? (post.platform || 'twitter') : 'twitter';
+    document.getElementById('field-status').value = post ? (post.status || 'draft') : 'draft';
+    document.getElementById('field-body').value = post ? (post.body || '') : '';
+    document.getElementById('field-scheduled').value = post ? fmtDatetimeLocal(post.scheduled_for) : '';
+    document.getElementById('field-tags').value = post ? (post.tags || '') : '';
+    document.getElementById('char-count').textContent = `${(post ? (post.body || '') : '').length} characters`;
+    document.getElementById('modal-save-btn').textContent = post ? 'Save Changes' : 'Save Draft';
+    document.getElementById('post-modal').classList.add('open');
+    document.getElementById('field-body').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('post-modal').classList.remove('open');
+    editingId = null;
+  }
+
+  async function savePost() {
+    const body = document.getElementById('field-body').value.trim();
+    if (!body) { document.getElementById('field-body').focus(); showToast('Content body is required.'); return; }
+    const rawTags = document.getElementById('field-tags').value.trim();
+    const payload = {
+      platform: document.getElementById('field-platform').value,
+      status: document.getElementById('field-status').value,
+      body,
+      scheduledFor: document.getElementById('field-scheduled').value || null,
+      tags: rawTags ? rawTags.split(',').map(t => t.trim()).filter(Boolean) : []
+    };
+    try {
+      let res, data;
+      if (editingId) {
+        res = await fetch(`/api/pa/social/${editingId}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error();
+        const j1 = await res.json();
+        data = j1.draft || j1;
+        allPosts = allPosts.map(p => p.id === editingId ? data : p);
+      } else {
+        res = await fetch('/api/pa/social', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error();
+        const j2 = await res.json();
+        data = j2.draft || j2;
+        allPosts.unshift(data);
+      }
+      renderGrid();
+      closeModal();
+      showToast(editingId ? 'Post updated.' : 'Draft created.');
+    } catch(e) { showToast('Failed to save post.'); }
+  }
+
+  async function deletePost(id) {
+    if (!confirm('Delete this post?')) return;
+    try {
+      const res = await fetch(`/api/pa/social/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      allPosts = allPosts.filter(p => p.id !== id);
+      renderGrid();
+      showToast('Post deleted.');
+    } catch(e) { showToast('Failed to delete post.'); }
+  }
+
+  document.getElementById('content-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const post = allPosts.find(p => String(p.id) === String(id));
+    if (btn.dataset.action === 'edit') openModal(post);
+    else if (btn.dataset.action === 'delete') deletePost(id);
+  });
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeFilter = tab.dataset.filter;
+      renderGrid();
+    });
+  });
+
+  document.getElementById('new-draft-btn').addEventListener('click', () => openModal(null));
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-save-btn').addEventListener('click', savePost);
+  document.getElementById('post-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  loadPosts();
+</script>
+</body>
+</html>

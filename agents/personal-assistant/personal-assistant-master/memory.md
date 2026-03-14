@@ -8,13 +8,21 @@ Status: active
 
 ## Datastore Context
 
-- planned; no finalized production datastore yet
+- V1 live: local SQLite (`better-sqlite3`) via `db.pa.*` namespace in the control-plane process
+- 9 tables: `pa_configuration`, `pa_tasks`, `pa_calendar_events`, `pa_email_accounts`, `pa_email_cache`, `pa_email_audit`, `pa_social_drafts`, `pa_fitness_logs`, `pa_fitness_goals`
+- All tables carry `IF NOT EXISTS` guards and covering indexes for common query shapes
+
+## V1 Implementation Status (2026-03-14)
+
+- Phases 1–6 complete
+- All 5 modules live: `/pa`, `/pa/tasks`, `/pa/calendar`, `/pa/email`, `/pa/social`, `/pa/fitness`
+- REST API: full CRUD under `/api/pa/*`, overview at `/api/pa/overview` with `dailyBriefing` field
+- Operator-owned boundaries: email IMAP/SMTP cPanel setup, social publishing tokens, fitness wearable sync
 
 ## Current Priorities
 
-1. task manager + calendar baseline
-2. email/social management baseline
-3. fitness dashboard baseline
+1. Phase 7: final QA pass, operator packet completion, and implementation status summary
+2. Monitor operator onboarding for email (cPanel mailbox steps) and social (publishing token setup)
 
 ## 2026-02-28 Orchestration vNext
 

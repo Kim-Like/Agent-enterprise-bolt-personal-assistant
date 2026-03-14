@@ -26,6 +26,7 @@ import { pageRoutes } from "./routes/pages.js";
 import { projectRoutes } from "./routes/projects.js";
 import { programRoutes } from "./routes/programs.js";
 import { systemMapRoutes } from "./routes/system-map.js";
+import { paRoutes } from "./routes/pa.js";
 import { workRoutes } from "./routes/work.js";
 
 const DELIVERED_PAGES = [
@@ -49,6 +50,48 @@ const DELIVERED_PAGES = [
     title: "Workboard",
     source: "delivery",
     file: "client/pages/workboard.html",
+  },
+  {
+    id: "pa-home",
+    route: "/pa",
+    title: "Personal Assistant",
+    source: "delivery",
+    file: "client/pages/pa.html",
+  },
+  {
+    id: "pa-tasks",
+    route: "/pa/tasks",
+    title: "PA Task Manager",
+    source: "delivery",
+    file: "client/pages/pa-tasks.html",
+  },
+  {
+    id: "pa-calendar",
+    route: "/pa/calendar",
+    title: "PA Calendar",
+    source: "delivery",
+    file: "client/pages/pa-calendar.html",
+  },
+  {
+    id: "pa-email",
+    route: "/pa/email",
+    title: "PA Email",
+    source: "delivery",
+    file: "client/pages/pa-email.html",
+  },
+  {
+    id: "pa-social",
+    route: "/pa/social",
+    title: "PA Social",
+    source: "delivery",
+    file: "client/pages/pa-social.html",
+  },
+  {
+    id: "pa-fitness",
+    route: "/pa/fitness",
+    title: "PA Fitness",
+    source: "delivery",
+    file: "client/pages/pa-fitness.html",
   },
 ];
 
@@ -285,6 +328,7 @@ export async function createApp(options = {}) {
   await app.register(programRoutes);
   await app.register(systemMapRoutes);
   await app.register(workRoutes);
+  await app.register(paRoutes);
   await app.register(lavprisRoutes, {
     requireInternalAccess: true,
     internalApiToken,

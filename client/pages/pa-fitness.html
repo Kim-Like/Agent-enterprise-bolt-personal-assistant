@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PA — Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #0F766E;
+      --accent-light: #14B8A6;
+      --accent-hover: #0D6B64;
+      --shell: #134E4A;
+      --surface-tint: #F0FDFA;
+      --canvas: #F8FAFC;
+      --card: #FFFFFF;
+      --border: #E2E8F0;
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --sidebar-width: 240px;
+      --radius: 20px;
+      --radius-sm: 10px;
+    }
+
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--canvas); color: var(--text-primary); display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar { width: var(--sidebar-width); min-height: 100vh; background: var(--shell); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+    .sidebar-logo { padding: 28px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-logo span { font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.3px; }
+    .sidebar-logo small { display: block; font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 400; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: rgba(255,255,255,0.65); text-decoration: none; font-size: 13.5px; font-weight: 500; transition: background 0.15s, color 0.15s; }
+    .sidebar-nav a:hover { background: rgba(255,255,255,0.08); color: #FFFFFF; }
+    .sidebar-nav a.active { background: rgba(20,184,166,0.18); color: #FFFFFF; }
+    .sidebar-nav a .icon { width: 18px; height: 18px; opacity: 0.8; flex-shrink: 0; }
+    .sidebar-nav a.active .icon { opacity: 1; }
+    .sidebar-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 8px 12px; }
+    .sidebar-back { padding: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-back a { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.45); text-decoration: none; font-size: 12.5px; padding: 8px 12px; border-radius: 8px; transition: color 0.15s, background 0.15s; }
+    .sidebar-back a:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }
+
+    /* ── Main ── */
+    .main { flex: 1; overflow-x: hidden; min-width: 0; }
+    .page-header { padding: 40px 40px 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+    .page-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
+    .page-content { padding: 24px 40px 48px; display: flex; flex-direction: column; gap: 28px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; border: none; transition: background 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: #F1F5F9; }
+    .btn-sm { padding: 7px 14px; font-size: 12.5px; }
+
+    /* ── Stat Cards ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stat-card { background: var(--card); border-radius: var(--radius); padding: 22px 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; transition: box-shadow 0.15s; }
+    .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+    .stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 30px; font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+    .stat-unit { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+    .stat-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--surface-tint); display: flex; align-items: center; justify-content: center; }
+
+    /* ── Section ── */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .section-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+
+    /* ── Activity Table ── */
+    .table-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .table-card table { width: 100%; border-collapse: collapse; }
+    .table-card thead th { padding: 11px 16px; text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: #FAFAFA; white-space: nowrap; }
+    .table-card tbody td { padding: 12px 16px; font-size: 13.5px; color: var(--text-primary); border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .table-card tbody tr:last-child td { border-bottom: none; }
+    .table-card tbody tr { transition: background 0.1s; }
+    .table-card tbody tr:hover { background: #F8FAFC; }
+
+    .activity-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .act-run { background: #DCFCE7; color: #16A34A; }
+    .act-walk { background: #F0FDF4; color: #15803D; }
+    .act-cycle { background: #FEF3C7; color: #D97706; }
+    .act-swim { background: #E0F2FE; color: #0369A1; }
+    .act-gym { background: var(--surface-tint); color: var(--accent); }
+    .act-other { background: #F1F5F9; color: var(--text-secondary); }
+
+    .source-chip { font-size: 11.5px; font-family: 'JetBrains Mono', monospace; background: #F1F5F9; color: var(--text-secondary); padding: 2px 7px; border-radius: 5px; }
+
+    .mono { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text-secondary); }
+
+    .act-btn { padding: 4px 10px; border-radius: 7px; font-size: 11.5px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid #FECACA; background: #FEF2F2; color: #DC2626; transition: all 0.12s; white-space: nowrap; }
+    .act-btn:hover { background: #FEE2E2; border-color: #FCA5A5; color: #B91C1C; }
+
+    .empty-state { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+
+    /* ── Goals ── */
+    .goals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .goal-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+    .goal-type { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+    .goal-target { font-size: 20px; font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+    .goal-target span { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+    .goal-period { font-size: 12px; color: var(--text-secondary); }
+
+    .progress-bar-wrap { height: 8px; background: #F1F5F9; border-radius: 20px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 20px; transition: width 0.4s; }
+
+    .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Privacy Notice ── */
+    .privacy-banner { background: #F8FAFC; border: 1.5px solid var(--border); border-radius: 14px; padding: 13px 16px; display: flex; align-items: flex-start; gap: 11px; }
+    .privacy-banner-icon { color: var(--text-muted); flex-shrink: 0; margin-top: 1px; }
+    .privacy-banner-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ── Modal ── */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 100; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--card); border-radius: var(--radius); width: 100%; max-width: 500px; margin: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.18); overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
+    .modal-header { padding: 22px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .modal-title-text { font-size: 16px; font-weight: 700; }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 6px; transition: color 0.12s, background 0.12s; line-height: 1; }
+    .modal-close:hover { color: var(--text-primary); background: #F1F5F9; }
+    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13.5px; font-family: inherit; color: var(--text-primary); background: var(--canvas); transition: border-color 0.15s; outline: none; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); background: #fff; }
+    .form-textarea { resize: vertical; min-height: 60px; }
+    .modal-footer { padding: 16px 24px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text-primary); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 500; z-index: 200; box-shadow: 0 6px 24px rgba(0,0,0,0.15); transform: translateY(80px); opacity: 0; transition: all 0.25s; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>Personal Assistant</span>
+    <small>Command Center</small>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/pa">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="/pa/tasks">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Tasks
+    </a>
+    <a href="/pa/calendar">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Calendar
+    </a>
+    <a href="/pa/email">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      Email
+    </a>
+    <a href="/pa/social">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+      Social
+    </a>
+    <a href="/pa/fitness" class="active">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Fitness
+    </a>
+    <div class="sidebar-divider"></div>
+  </nav>
+  <div class="sidebar-back">
+    <a href="/">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Home
+    </a>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">Personal Assistant</p>
+      <h1 class="page-title">Fitness Dashboard</h1>
+    </div>
+    <button class="btn btn-primary" id="log-activity-btn">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      Log activity
+    </button>
+  </div>
+
+  <div class="page-content">
+
+    <!-- Privacy Notice -->
+    <div class="privacy-banner">
+      <svg class="privacy-banner-icon" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div class="privacy-banner-text">
+        <strong>Privacy notice:</strong> Fitness data is stored locally in SQLite on your server. Live wearable sync (Apple Health, Garmin, Fitbit) requires operator-level integration and is not enabled by default.
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div class="stat-label">Logs This Week</div>
+        <div class="stat-value" id="stat-logs">--</div>
+        <div class="stat-unit">activities</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="stat-label">Total Minutes</div>
+        <div class="stat-value" id="stat-minutes">--</div>
+        <div class="stat-unit">min</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </div>
+        <div class="stat-label">Total Distance</div>
+        <div class="stat-value" id="stat-distance">--</div>
+        <div class="stat-unit">km</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        </div>
+        <div class="stat-label">Avg Calories</div>
+        <div class="stat-value" id="stat-calories">--</div>
+        <div class="stat-unit">kcal / session</div>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div>
+      <div class="section-header">
+        <h2 class="section-title">Recent Activity Log</h2>
+      </div>
+      <div class="table-card">
+        <table id="activity-table">
+          <thead>
+            <tr>
+              <th>Activity</th>
+              <th>Duration</th>
+              <th>Distance</th>
+              <th>Calories</th>
+              <th>Date</th>
+              <th>Source</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="activity-tbody">
+            <tr><td colspan="7" class="empty-state">Loading activities...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Goals -->
+    <div>
+      <div class="section-header">
+        <h2 class="section-title">Active Goals</h2>
+        <button class="btn btn-ghost btn-sm" id="add-goal-btn">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add goal
+        </button>
+      </div>
+      <div class="goals-grid" id="goals-grid">
+        <div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-muted);font-size:13.5px;">Loading goals...</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ── Log Activity Modal ── -->
+<div class="modal-backdrop" id="log-modal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span class="modal-title-text" id="log-modal-title">Log Activity</span>
+      <button class="modal-close" data-modal="log-modal" aria-label="Close">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="log-id" value="" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label" for="log-type">Activity Type</label>
+          <select class="form-select" id="log-type">
+            <option value="run">Run</option>
+            <option value="walk">Walk</option>
+            <option value="cycle">Cycle</option>
+            <option value="swim">Swim</option>
+            <option value="gym">Gym</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="log-source">Source</label>
+          <select class="form-select" id="log-source">
+            <option value="manual">Manual</option>
+            <option value="import">Import</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label" for="log-duration">Duration (min)</label>
+          <input class="form-input" id="log-duration" type="number" min="1" placeholder="30" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="log-distance">Distance (km)</label>
+          <input class="form-input" id="log-distance" type="number" min="0" step="0.1" placeholder="5.0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="log-calories">Calories</label>
+          <input class="form-input" id="log-calories" type="number" min="0" placeholder="300" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="log-date">Logged At</label>
+        <input class="form-input" id="log-date" type="datetime-local" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="log-notes">Notes</label>
+        <textarea class="form-textarea" id="log-notes" placeholder="Optional notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-modal="log-modal" data-action="cancel">Cancel</button>
+      <button class="btn btn-primary" id="log-save-btn">Save Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Goal Modal ── -->
+<div class="modal-backdrop" id="goal-modal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span class="modal-title-text" id="goal-modal-title">Add Goal</span>
+      <button class="modal-close" data-modal="goal-modal" aria-label="Close">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="goal-id" value="" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label" for="goal-type">Goal Type</label>
+          <select class="form-select" id="goal-type">
+            <option value="distance">Distance</option>
+            <option value="duration">Duration</option>
+            <option value="calories">Calories</option>
+            <option value="sessions">Sessions</option>
+            <option value="weight">Weight</option>
+            <option value="steps">Steps</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-period">Period</label>
+          <select class="form-select" id="goal-period">
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+            <option value="total">Total / One-time</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label" for="goal-target">Target Value</label>
+          <input class="form-input" id="goal-target" type="number" min="0" step="0.1" placeholder="e.g. 50" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="goal-unit">Unit</label>
+          <input class="form-input" id="goal-unit" type="text" placeholder="e.g. km, min, kcal" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="goal-current">Current Progress (optional)</label>
+        <input class="form-input" id="goal-current" type="number" min="0" step="0.1" placeholder="0" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-modal="goal-modal" data-action="cancel">Cancel</button>
+      <button class="btn btn-primary" id="goal-save-btn">Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let allLogs = [];
+  let allGoals = [];
+
+  function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function showToast(msg, duration = 2800) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  function fmtDatetimeLocal(dt) {
+    if (!dt) return '';
+    const d = new Date(dt);
+    if (isNaN(d)) return '';
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function activityBadge(type) {
+    const cls = { run:'act-run', walk:'act-walk', cycle:'act-cycle', swim:'act-swim', gym:'act-gym', other:'act-other' };
+    return `<span class="activity-badge ${cls[type]||'act-other'}">${escHtml(type||'other')}</span>`;
+  }
+
+  function computeStats() {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7*24*60*60*1000);
+    const weekLogs = allLogs.filter(l => new Date(l.logged_at) >= weekAgo);
+    document.getElementById('stat-logs').textContent = weekLogs.length;
+
+    const totalMin = allLogs.reduce((s, l) => s + (Number(l.duration_minutes) || 0), 0);
+    document.getElementById('stat-minutes').textContent = totalMin;
+
+    const totalDist = allLogs.reduce((s, l) => s + (Number(l.distance_km) || 0), 0);
+    document.getElementById('stat-distance').textContent = totalDist.toFixed(1);
+
+    const withCal = allLogs.filter(l => Number(l.calories) > 0);
+    const avgCal = withCal.length ? Math.round(withCal.reduce((s, l) => s + Number(l.calories), 0) / withCal.length) : 0;
+    document.getElementById('stat-calories').textContent = avgCal || '--';
+  }
+
+  function renderLogs() {
+    const tbody = document.getElementById('activity-tbody');
+    if (allLogs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No activity logs yet. Log your first activity to get started.</td></tr>';
+      return;
+    }
+    const sorted = [...allLogs].sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+    tbody.innerHTML = sorted.map(l => {
+      const date = l.logged_at ? new Date(l.logged_at).toLocaleDateString([], {dateStyle:'medium'}) : '--';
+      const dist = l.distance_km ? `${Number(l.distance_km).toFixed(1)} km` : '--';
+      const cal = l.calories ? `${l.calories} kcal` : '--';
+      const dur = l.duration_minutes ? `${l.duration_minutes} min` : '--';
+      return `<tr>
+        <td>${activityBadge(l.activity_type)}</td>
+        <td class="mono">${dur}</td>
+        <td class="mono">${dist}</td>
+        <td class="mono">${cal}</td>
+        <td class="mono">${date}</td>
+        <td><span class="source-chip">${escHtml(l.source || 'manual')}</span></td>
+        <td><button class="act-btn" data-id="${l.id}" data-action="delete-log">Delete</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderGoals() {
+    const grid = document.getElementById('goals-grid');
+    if (allGoals.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-muted);font-size:13.5px;">No active goals. Add one to start tracking your progress.</div>`;
+      return;
+    }
+    grid.innerHTML = allGoals.map(g => {
+      const current = Number(g.current_value) || 0;
+      const target = Number(g.target_value) || 0;
+      const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+      return `<div class="goal-card">
+        <div class="goal-type">${escHtml(g.goal_type)}</div>
+        <div class="goal-target">${target} <span>${escHtml(g.unit || '')}</span></div>
+        <div class="goal-period">${escHtml(g.period || 'weekly')} goal</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+        <div class="progress-label"><span>${current} ${escHtml(g.unit || '')}</span><span>${pct}%</span></div>
+        <div style="display:flex;gap:6px;margin-top:2px;">
+          <button style="padding:4px 10px;border-radius:7px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);transition:all 0.12s;" data-id="${g.id}" data-action="delete-goal" onmouseover="this.style.background='#FEE2E2';this.style.color='#DC2626'" onmouseout="this.style.background='var(--card)';this.style.color='var(--text-secondary)'">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadData() {
+    try {
+      const [logsRes, goalsRes] = await Promise.all([
+        fetch('/api/pa/fitness/logs'),
+        fetch('/api/pa/fitness/goals')
+      ]);
+      allLogs = logsRes.ok ? ((await logsRes.json()).entries || []) : [];
+      allGoals = goalsRes.ok ? ((await goalsRes.json()).entries || []) : [];
+    } catch(e) {
+      allLogs = [];
+      allGoals = [];
+    }
+    computeStats();
+    renderLogs();
+    renderGoals();
+  }
+
+  // ── Log Activity Modal ──
+  function openLogModal(log) {
+    document.getElementById('log-modal-title').textContent = log ? 'Edit Activity' : 'Log Activity';
+    document.getElementById('log-id').value = log ? log.id : '';
+    document.getElementById('log-type').value = log ? (log.activity_type || 'run') : 'run';
+    document.getElementById('log-source').value = log ? (log.source || 'manual') : 'manual';
+    document.getElementById('log-duration').value = log ? (log.duration_minutes || '') : '';
+    document.getElementById('log-distance').value = log ? (log.distance_km || '') : '';
+    document.getElementById('log-calories').value = log ? (log.calories || '') : '';
+    document.getElementById('log-date').value = log ? fmtDatetimeLocal(log.logged_at) : fmtDatetimeLocal(new Date().toISOString());
+    document.getElementById('log-notes').value = log ? (log.notes || '') : '';
+    document.getElementById('log-modal').classList.add('open');
+  }
+
+  async function saveLog() {
+    const duration = document.getElementById('log-duration').value;
+    if (!duration) { showToast('Duration is required.'); return; }
+    const payload = {
+      activityType: document.getElementById('log-type').value,
+      source: document.getElementById('log-source').value,
+      durationMinutes: Number(duration),
+      distanceKm: document.getElementById('log-distance').value ? Number(document.getElementById('log-distance').value) : null,
+      calories: document.getElementById('log-calories').value ? Number(document.getElementById('log-calories').value) : null,
+      loggedAt: document.getElementById('log-date').value || new Date().toISOString(),
+      notes: document.getElementById('log-notes').value.trim() || null
+    };
+    const id = document.getElementById('log-id').value;
+    try {
+      let res, data;
+      if (id) {
+        await fetch(`/api/pa/fitness/logs/${id}`, { method: 'DELETE' });
+        allLogs = allLogs.filter(l => l.id !== id);
+      }
+      res = await fetch('/api/pa/fitness/logs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error();
+      {
+        const j = await res.json();
+        data = j.log || j;
+        allLogs.unshift(data);
+      }
+      computeStats();
+      renderLogs();
+      document.getElementById('log-modal').classList.remove('open');
+      showToast(id ? 'Activity updated.' : 'Activity logged.');
+    } catch(e) { showToast('Failed to save activity.'); }
+  }
+
+  async function deleteLog(id) {
+    if (!confirm('Delete this activity log?')) return;
+    try {
+      const res = await fetch(`/api/pa/fitness/logs/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      allLogs = allLogs.filter(l => String(l.id) !== String(id));
+      computeStats();
+      renderLogs();
+      showToast('Activity deleted.');
+    } catch(e) { showToast('Failed to delete activity.'); }
+  }
+
+  // ── Add Goal Modal ──
+  function openGoalModal() {
+    document.getElementById('goal-id').value = '';
+    document.getElementById('goal-type').value = 'distance';
+    document.getElementById('goal-period').value = 'weekly';
+    document.getElementById('goal-target').value = '';
+    document.getElementById('goal-unit').value = '';
+    document.getElementById('goal-current').value = '';
+    document.getElementById('goal-modal').classList.add('open');
+  }
+
+  async function saveGoal() {
+    const target = document.getElementById('goal-target').value;
+    if (!target) { showToast('Target value is required.'); return; }
+    const payload = {
+      goalType: document.getElementById('goal-type').value,
+      period: document.getElementById('goal-period').value,
+      targetValue: Number(target),
+      unit: document.getElementById('goal-unit').value.trim() || null
+    };
+    try {
+      const res = await fetch('/api/pa/fitness/goals', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error();
+      const j = await res.json();
+      allGoals.push(j.goal || j);
+      renderGoals();
+      document.getElementById('goal-modal').classList.remove('open');
+      showToast('Goal added.');
+    } catch(e) { showToast('Failed to save goal.'); }
+  }
+
+  async function deleteGoal(id) {
+    if (!confirm('Remove this goal?')) return;
+    try {
+      const res = await fetch(`/api/pa/fitness/goals/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      allGoals = allGoals.filter(g => String(g.id) !== String(id));
+      renderGoals();
+      showToast('Goal removed.');
+    } catch(e) { showToast('Failed to remove goal.'); }
+  }
+
+  // Event delegation
+  document.getElementById('activity-tbody').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'delete-log') deleteLog(btn.dataset.id);
+  });
+
+  document.getElementById('goals-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'delete-goal') deleteGoal(btn.dataset.id);
+  });
+
+  document.getElementById('log-activity-btn').addEventListener('click', () => openLogModal(null));
+  document.getElementById('log-save-btn').addEventListener('click', saveLog);
+  document.getElementById('add-goal-btn').addEventListener('click', openGoalModal);
+  document.getElementById('goal-save-btn').addEventListener('click', saveGoal);
+
+  // Generic modal close handlers
+  document.querySelectorAll('.modal-close, [data-action="cancel"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modalId = btn.dataset.modal || btn.closest('.modal-backdrop')?.id;
+      if (modalId) document.getElementById(modalId).classList.remove('open');
+    });
+  });
+
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.classList.remove('open'); });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+  });
+
+  loadData();
+</script>
+</body>
+</html>

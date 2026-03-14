@@ -1,27 +1,31 @@
 # Rollback And Repair
 
-## Current Baseline
+## Current Baseline (Updated 2026-03-14)
 
-Personal Assistant is currently scaffolded, not live as a full V1 runtime.
+Personal Assistant V1 is live. All five modules are backed by local SQLite and accessible at `/pa/*`.
 
-That means the rollback baseline is primarily:
+The rollback baseline is:
 
-- current registries
-- current agent packets
-- current project-catalog entry
-- current placeholder module folders
+- `server/src/db/init.js` — contains `PA_SCHEMA` and `db.pa.*` methods
+- `server/src/routes/pa.js` — all `/api/pa/*` route handlers
+- `server/src/app.js` — `paRoutes` import/register and `DELIVERED_PAGES` entries for all 6 PA pages
+- `server/src/lib/project-catalog.js` — Personal Assistant definition with live application surfaces
+- `client/pages/pa*.html` — 6 delivered pages (pa.html, pa-tasks.html, pa-calendar.html, pa-email.html, pa-social.html, pa-fitness.html)
+- `agents/personal-assistant/personal-assistant-master/memory.md` — V1 status entry
+- `programs/personal-assistant/CHANGELOG.md` — Phase 1–6 rollout log
 
-## Before V1 Integration
+## Before Any Structural Change To V1
 
-Before enabling V1 runtime work in the main project, preserve:
+Before making structural changes to the V1 implementation, preserve:
 
-- `.data/control-plane.sqlite`
+- `.data/control-plane.sqlite` (contains live PA data)
 - `server/src/db/init.js`
+- `server/src/routes/pa.js`
 - `server/src/lib/project-catalog.js`
 - `agents/registry.json`
 - `programs/registry.json`
 - `agents/personal-assistant/`
-- `client/pages/` and `client/assets/` surfaces that will be touched
+- `client/pages/pa*.html`
 
 ## Repair-First Rule
 

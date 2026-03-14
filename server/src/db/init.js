@@ -3,6 +3,127 @@ import path from "node:path";
 
 import Database from "better-sqlite3";
 
+const PA_SCHEMA = `
+CREATE TABLE IF NOT EXISTS pa_configuration (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pa_tasks (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'todo',
+  priority TEXT NOT NULL DEFAULT 'medium',
+  due_date TEXT,
+  tags TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_tasks_status_updated_at
+  ON pa_tasks (status, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_calendar_events (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  start_at TEXT NOT NULL,
+  end_at TEXT NOT NULL,
+  all_day INTEGER NOT NULL DEFAULT 0,
+  location TEXT,
+  tags TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_calendar_events_start_at
+  ON pa_calendar_events (start_at ASC);
+
+CREATE TABLE IF NOT EXISTS pa_email_accounts (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  address TEXT NOT NULL UNIQUE,
+  provider TEXT NOT NULL DEFAULT 'cpanel-imap',
+  status TEXT NOT NULL DEFAULT 'pending',
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pa_email_cache (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  message_uid TEXT NOT NULL,
+  subject TEXT NOT NULL DEFAULT '',
+  from_address TEXT NOT NULL DEFAULT '',
+  to_addresses TEXT NOT NULL DEFAULT '[]',
+  date TEXT NOT NULL,
+  body_preview TEXT NOT NULL DEFAULT '',
+  is_read INTEGER NOT NULL DEFAULT 0,
+  flags TEXT NOT NULL DEFAULT '[]',
+  folder TEXT NOT NULL DEFAULT 'INBOX',
+  synced_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_email_cache_account_date
+  ON pa_email_cache (account_id, date DESC);
+
+CREATE TABLE IF NOT EXISTS pa_email_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  actor TEXT NOT NULL DEFAULT 'operator',
+  detail TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_email_audit_account_created_at
+  ON pa_email_audit (account_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_social_drafts (
+  id TEXT PRIMARY KEY,
+  platform TEXT NOT NULL,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  scheduled_for TEXT,
+  tags TEXT NOT NULL DEFAULT '[]',
+  media_urls TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_social_drafts_status_scheduled_for
+  ON pa_social_drafts (status, scheduled_for ASC);
+
+CREATE TABLE IF NOT EXISTS pa_fitness_logs (
+  id TEXT PRIMARY KEY,
+  activity_type TEXT NOT NULL,
+  duration_minutes INTEGER,
+  distance_km REAL,
+  calories INTEGER,
+  notes TEXT NOT NULL DEFAULT '',
+  logged_at TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'manual',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_fitness_logs_logged_at
+  ON pa_fitness_logs (logged_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_fitness_goals (
+  id TEXT PRIMARY KEY,
+  goal_type TEXT NOT NULL,
+  target_value REAL NOT NULL,
+  unit TEXT NOT NULL,
+  period TEXT NOT NULL DEFAULT 'weekly',
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS control_plane_meta (
   key TEXT PRIMARY KEY,
@@ -461,6 +582,7 @@ export function initControlPlaneDb(env) {
   connection.pragma("journal_mode = WAL");
   connection.pragma("foreign_keys = ON");
   connection.exec(SCHEMA);
+  connection.exec(PA_SCHEMA);
   ensureChatSessionSchema(connection);
   ensureRequestedSkillSchema(connection);
   ensureTaskMetadataSchema(connection);
@@ -1015,6 +1137,148 @@ export function initControlPlaneDb(env) {
         .get(siteKey);
 
       return toClientAgentProfile(row);
+    },
+    pa: {
+      listTasks({ status } = {}) {
+        const where = status ? `WHERE status = ?` : ``;
+        const args = status ? [status] : [];
+        return connection
+          .prepare(`SELECT * FROM pa_tasks ${where} ORDER BY updated_at DESC`)
+          .all(...args)
+          .map((r) => ({ ...r, tags: JSON.parse(r.tags) }));
+      },
+      getTask(id) {
+        const r = connection.prepare(`SELECT * FROM pa_tasks WHERE id = ?`).get(id);
+        return r ? { ...r, tags: JSON.parse(r.tags) } : null;
+      },
+      upsertTask(task) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_tasks WHERE id = ?`).get(task.id);
+        const p = { id: task.id, title: task.title, description: task.description || '', status: task.status || 'todo', priority: task.priority || 'medium', due_date: task.dueDate || task.due_date || null, tags: JSON.stringify(task.tags || []), created_at: task.createdAt || task.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_tasks SET title=@title,description=@description,status=@status,priority=@priority,due_date=@due_date,tags=@tags,updated_at=@updated_at WHERE id=@id`).run(p);
+        } else {
+          connection.prepare(`INSERT INTO pa_tasks (id,title,description,status,priority,due_date,tags,created_at,updated_at) VALUES (@id,@title,@description,@status,@priority,@due_date,@tags,@created_at,@updated_at)`).run(p);
+        }
+        return db.pa.getTask(task.id);
+      },
+      deleteTask(id) {
+        connection.prepare(`DELETE FROM pa_tasks WHERE id = ?`).run(id);
+      },
+      listEvents({ from, to } = {}) {
+        let q = `SELECT * FROM pa_calendar_events`;
+        const a = [];
+        if (from && to) { q += ` WHERE start_at >= ? AND start_at <= ?`; a.push(from, to); }
+        else if (from) { q += ` WHERE start_at >= ?`; a.push(from); }
+        q += ` ORDER BY start_at ASC`;
+        return connection.prepare(q).all(...a).map((r) => ({ ...r, tags: JSON.parse(r.tags), allDay: Boolean(r.all_day) }));
+      },
+      getEvent(id) {
+        const r = connection.prepare(`SELECT * FROM pa_calendar_events WHERE id = ?`).get(id);
+        return r ? { ...r, tags: JSON.parse(r.tags), allDay: Boolean(r.all_day) } : null;
+      },
+      upsertEvent(event) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_calendar_events WHERE id = ?`).get(event.id);
+        const p = { id: event.id, title: event.title, description: event.description || '', start_at: event.startAt || event.start_at, end_at: event.endAt || event.end_at, all_day: event.allDay ? 1 : 0, location: event.location || null, tags: JSON.stringify(event.tags || []), created_at: event.createdAt || event.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_calendar_events SET title=@title,description=@description,start_at=@start_at,end_at=@end_at,all_day=@all_day,location=@location,tags=@tags,updated_at=@updated_at WHERE id=@id`).run(p);
+        } else {
+          connection.prepare(`INSERT INTO pa_calendar_events (id,title,description,start_at,end_at,all_day,location,tags,created_at,updated_at) VALUES (@id,@title,@description,@start_at,@end_at,@all_day,@location,@tags,@created_at,@updated_at)`).run(p);
+        }
+        return db.pa.getEvent(event.id);
+      },
+      deleteEvent(id) {
+        connection.prepare(`DELETE FROM pa_calendar_events WHERE id = ?`).run(id);
+      },
+      listEmailAccounts() {
+        return connection.prepare(`SELECT * FROM pa_email_accounts ORDER BY label ASC`).all();
+      },
+      upsertEmailAccount(acct) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_email_accounts WHERE id = ?`).get(acct.id);
+        const p = { id: acct.id, label: acct.label, address: acct.address, provider: acct.provider || 'cpanel-imap', status: acct.status || 'pending', notes: acct.notes || '', created_at: acct.createdAt || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_email_accounts SET label=@label,address=@address,provider=@provider,status=@status,notes=@notes,updated_at=@updated_at WHERE id=@id`).run(p);
+        } else {
+          connection.prepare(`INSERT INTO pa_email_accounts (id,label,address,provider,status,notes,created_at,updated_at) VALUES (@id,@label,@address,@provider,@status,@notes,@created_at,@updated_at)`).run(p);
+        }
+        return connection.prepare(`SELECT * FROM pa_email_accounts WHERE id = ?`).get(acct.id);
+      },
+      deleteEmailAccount(id) {
+        connection.prepare(`DELETE FROM pa_email_accounts WHERE id = ?`).run(id);
+      },
+      appendEmailAudit(entry) {
+        connection.prepare(`INSERT INTO pa_email_audit (account_id,action,actor,detail,created_at) VALUES (@account_id,@action,@actor,@detail,@created_at)`).run({ account_id: entry.accountId, action: entry.action, actor: entry.actor || 'operator', detail: JSON.stringify(entry.detail || {}), created_at: nowIso() });
+      },
+      listEmailAudit(accountId, { limit = 20 } = {}) {
+        return connection.prepare(`SELECT * FROM pa_email_audit WHERE account_id = ? ORDER BY created_at DESC LIMIT ?`).all(accountId, limit).map((r) => ({ ...r, detail: JSON.parse(r.detail) }));
+      },
+      listSocialDrafts({ status } = {}) {
+        const where = status ? `WHERE status = ?` : ``;
+        const args = status ? [status] : [];
+        return connection
+          .prepare(`SELECT * FROM pa_social_drafts ${where} ORDER BY updated_at DESC`)
+          .all(...args)
+          .map((r) => ({ ...r, tags: JSON.parse(r.tags), mediaUrls: JSON.parse(r.media_urls) }));
+      },
+      getSocialDraft(id) {
+        const r = connection.prepare(`SELECT * FROM pa_social_drafts WHERE id = ?`).get(id);
+        return r ? { ...r, tags: JSON.parse(r.tags), mediaUrls: JSON.parse(r.media_urls) } : null;
+      },
+      upsertSocialDraft(draft) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_social_drafts WHERE id = ?`).get(draft.id);
+        const p = { id: draft.id, platform: draft.platform, body: draft.body, status: draft.status || 'draft', scheduled_for: draft.scheduledFor || draft.scheduled_for || null, tags: JSON.stringify(draft.tags || []), media_urls: JSON.stringify(draft.mediaUrls || []), created_at: draft.createdAt || draft.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_social_drafts SET platform=@platform,body=@body,status=@status,scheduled_for=@scheduled_for,tags=@tags,media_urls=@media_urls,updated_at=@updated_at WHERE id=@id`).run(p);
+        } else {
+          connection.prepare(`INSERT INTO pa_social_drafts (id,platform,body,status,scheduled_for,tags,media_urls,created_at,updated_at) VALUES (@id,@platform,@body,@status,@scheduled_for,@tags,@media_urls,@created_at,@updated_at)`).run(p);
+        }
+        return db.pa.getSocialDraft(draft.id);
+      },
+      deleteSocialDraft(id) {
+        connection.prepare(`DELETE FROM pa_social_drafts WHERE id = ?`).run(id);
+      },
+      listFitnessLogs({ limit = 50, activityType } = {}) {
+        const where = activityType ? `WHERE activity_type = ?` : ``;
+        const args = activityType ? [activityType, limit] : [limit];
+        return connection.prepare(`SELECT * FROM pa_fitness_logs ${where} ORDER BY logged_at DESC LIMIT ?`).all(...args);
+      },
+      getFitnessLog(id) {
+        return connection.prepare(`SELECT * FROM pa_fitness_logs WHERE id = ?`).get(id) || null;
+      },
+      insertFitnessLog(log) {
+        const now = nowIso();
+        const p = { id: log.id, activity_type: log.activityType || log.activity_type, duration_minutes: log.durationMinutes || log.duration_minutes || null, distance_km: log.distanceKm || log.distance_km || null, calories: log.calories || null, notes: log.notes || '', logged_at: log.loggedAt || log.logged_at || now, source: log.source || 'manual', created_at: now };
+        connection.prepare(`INSERT INTO pa_fitness_logs (id,activity_type,duration_minutes,distance_km,calories,notes,logged_at,source,created_at) VALUES (@id,@activity_type,@duration_minutes,@distance_km,@calories,@notes,@logged_at,@source,@created_at)`).run(p);
+        return db.pa.getFitnessLog(log.id);
+      },
+      deleteFitnessLog(id) {
+        connection.prepare(`DELETE FROM pa_fitness_logs WHERE id = ?`).run(id);
+      },
+      listFitnessGoals() {
+        return connection.prepare(`SELECT * FROM pa_fitness_goals ORDER BY created_at DESC`).all();
+      },
+      upsertFitnessGoal(goal) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_fitness_goals WHERE id = ?`).get(goal.id);
+        const p = { id: goal.id, goal_type: goal.goalType || goal.goal_type, target_value: goal.targetValue || goal.target_value, unit: goal.unit, period: goal.period || 'weekly', active: goal.active !== false ? 1 : 0, created_at: goal.createdAt || goal.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_fitness_goals SET goal_type=@goal_type,target_value=@target_value,unit=@unit,period=@period,active=@active,updated_at=@updated_at WHERE id=@id`).run(p);
+        } else {
+          connection.prepare(`INSERT INTO pa_fitness_goals (id,goal_type,target_value,unit,period,active,created_at,updated_at) VALUES (@id,@goal_type,@target_value,@unit,@period,@active,@created_at,@updated_at)`).run(p);
+        }
+        return connection.prepare(`SELECT * FROM pa_fitness_goals WHERE id = ?`).get(goal.id);
+      },
+      overviewStats() {
+        const taskCounts = connection.prepare(`SELECT status, COUNT(*) as count FROM pa_tasks GROUP BY status`).all().reduce((acc, r) => { acc[r.status] = r.count; return acc; }, {});
+        const upcomingEvents = connection.prepare(`SELECT COUNT(*) as count FROM pa_calendar_events WHERE start_at >= ?`).get(nowIso())?.count || 0;
+        const draftCount = connection.prepare(`SELECT COUNT(*) as count FROM pa_social_drafts WHERE status = 'draft'`).get()?.count || 0;
+        const recentFitness = connection.prepare(`SELECT COUNT(*) as count FROM pa_fitness_logs WHERE logged_at >= date('now','-7 days')`).get()?.count || 0;
+        const emailAccounts = connection.prepare(`SELECT COUNT(*) as count FROM pa_email_accounts`).get()?.count || 0;
+        return { taskCounts, upcomingEvents, draftCount, recentFitness, emailAccounts };
+      },
     },
     close() {
       connection.close();
