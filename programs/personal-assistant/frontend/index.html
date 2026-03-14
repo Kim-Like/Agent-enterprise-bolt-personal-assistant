@@ -671,7 +671,6 @@
       setStat('stat-fitness', data.recentFitness ?? 0);
       setStat('stat-email', data.emailAccounts ?? 0);
 
-      // Nav badges
       document.getElementById('nav-tasks-badge').textContent = todoCount;
       const evCount = Array.isArray(data.upcomingEvents) ? data.upcomingEvents.length : (data.upcomingEvents ?? 0);
       document.getElementById('nav-cal-badge').textContent = evCount;
