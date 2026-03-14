@@ -93,6 +93,13 @@ const DELIVERED_PAGES = [
     source: "delivery",
     file: "programs/personal-assistant/fitness-dashboard/frontend/index.html",
   },
+  {
+    id: "pa-investment",
+    route: "/pa/investment",
+    title: "PA Investment",
+    source: "delivery",
+    file: "programs/personal-assistant/investment/frontend/index.html",
+  },
 ];
 
 const PROTOTYPE_PAGES = [

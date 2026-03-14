@@ -639,6 +639,332 @@ export async function paRoutes(app) {
     const overview = db.li.liOverviewStats();
     return { generatedAt: nowIso(), overview, snapshots };
   });
+
+  app.get("/api/pa/inv/watchlist", async () => {
+    return { generatedAt: nowIso(), entries: db.inv.listWatchlist() };
+  });
+
+  app.post("/api/pa/inv/watchlist", async (request, reply) => {
+    const body = request.body || {};
+    if (!body.symbol) return reply.code(400).send({ error: "symbol is required" });
+    if (!body.name) return reply.code(400).send({ error: "name is required" });
+    const existing = db.inv.getWatchlistBySymbol(body.symbol.toUpperCase());
+    if (existing) return reply.code(409).send({ error: "Symbol already in watchlist" });
+    const item = db.inv.upsertWatchlistItem({ id: randomUUID(), ...body });
+    return reply.code(201).send({ item });
+  });
+
+  app.patch("/api/pa/inv/watchlist/:itemId", async (request, reply) => {
+    const existing = db.inv.getWatchlistItem(request.params.itemId);
+    if (!existing) return reply.code(404).send({ error: "Watchlist item not found" });
+    const item = db.inv.upsertWatchlistItem({ ...existing, ...(request.body || {}), id: existing.id });
+    return { item };
+  });
+
+  app.delete("/api/pa/inv/watchlist/:itemId", async (request, reply) => {
+    if (!db.inv.getWatchlistItem(request.params.itemId)) return reply.code(404).send({ error: "Not found" });
+    db.inv.deleteWatchlistItem(request.params.itemId);
+    return reply.code(204).send();
+  });
+
+  app.get("/api/pa/inv/prices/:symbol", async (request, reply) => {
+    const symbol = request.params.symbol.toUpperCase();
+    const days = request.query.days ? Number(request.query.days) : 365;
+    const cached = db.inv.getPriceHistory(symbol, { days });
+    const latest = db.inv.getLatestPrice(symbol);
+    const stale = !latest || new Date() - new Date(latest.date) > 24 * 60 * 60 * 1000;
+
+    if (stale) {
+      try {
+        const period1 = Math.floor(Date.now() / 1000) - days * 86400;
+        const period2 = Math.floor(Date.now() / 1000);
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${period1}&period2=${period2}`;
+        const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+        if (resp.ok) {
+          const json = await resp.json();
+          const result = json?.chart?.result?.[0];
+          if (result) {
+            const timestamps = result.timestamp || [];
+            const closes = result.indicators?.quote?.[0]?.close || [];
+            const opens = result.indicators?.quote?.[0]?.open || [];
+            const highs = result.indicators?.quote?.[0]?.high || [];
+            const lows = result.indicators?.quote?.[0]?.low || [];
+            const volumes = result.indicators?.quote?.[0]?.volume || [];
+            const rows = timestamps.map((ts, i) => ({
+              date: new Date(ts * 1000).toISOString().slice(0, 10),
+              open: opens[i] || null,
+              high: highs[i] || null,
+              low: lows[i] || null,
+              close: closes[i] || null,
+              volume: volumes[i] || null,
+            })).filter(r => r.close !== null);
+            db.inv.cachePrices(symbol, rows);
+            const fresh = db.inv.getPriceHistory(symbol, { days });
+            return { symbol, days, entries: fresh, source: 'yahoo-live' };
+          }
+        }
+      } catch (_e) {}
+    }
+
+    return { symbol, days, entries: cached, source: stale ? 'cache-stale' : 'cache' };
+  });
+
+  app.get("/api/pa/inv/holdings", async () => {
+    const holdings = db.inv.listHoldings();
+    const result = holdings.map(h => {
+      const purchases = db.inv.listPurchases(h.id);
+      return { ...h, purchases };
+    });
+    return { generatedAt: nowIso(), entries: result };
+  });
+
+  app.post("/api/pa/inv/holdings", async (request, reply) => {
+    const body = request.body || {};
+    if (!body.symbol) return reply.code(400).send({ error: "symbol is required" });
+    if (!body.name) return reply.code(400).send({ error: "name is required" });
+    const existing = db.inv.getHoldingBySymbol(body.symbol.toUpperCase());
+    if (existing) {
+      const purchases = db.inv.listPurchases(existing.id);
+      return { holding: { ...existing, purchases } };
+    }
+    const holding = db.inv.upsertHolding({ id: randomUUID(), ...body });
+    return reply.code(201).send({ holding: { ...holding, purchases: [] } });
+  });
+
+  app.patch("/api/pa/inv/holdings/:holdingId", async (request, reply) => {
+    const existing = db.inv.getHolding(request.params.holdingId);
+    if (!existing) return reply.code(404).send({ error: "Holding not found" });
+    const holding = db.inv.upsertHolding({ ...existing, ...(request.body || {}), id: existing.id });
+    return { holding };
+  });
+
+  app.delete("/api/pa/inv/holdings/:holdingId", async (request, reply) => {
+    if (!db.inv.getHolding(request.params.holdingId)) return reply.code(404).send({ error: "Not found" });
+    db.inv.deleteHolding(request.params.holdingId);
+    return reply.code(204).send();
+  });
+
+  app.get("/api/pa/inv/holdings/:holdingId/purchases", async (request, reply) => {
+    const holding = db.inv.getHolding(request.params.holdingId);
+    if (!holding) return reply.code(404).send({ error: "Holding not found" });
+    const purchases = db.inv.listPurchases(holding.id);
+    const latest = db.inv.getLatestPrice(holding.symbol);
+    const currentPrice = latest?.close || null;
+    const enriched = purchases.map(p => {
+      if (!currentPrice) return { ...p, currentPrice: null, gainPct: null, gainAbs: null };
+      const costBasis = p.price_per_share;
+      const gainPct = ((currentPrice - costBasis) / costBasis) * 100;
+      const gainAbs = (currentPrice - costBasis) * p.shares;
+      return { ...p, currentPrice, gainPct: Math.round(gainPct * 100) / 100, gainAbs: Math.round(gainAbs * 100) / 100 };
+    });
+    const totalShares = purchases.reduce((s, p) => s + p.shares, 0);
+    const totalCost = purchases.reduce((s, p) => s + p.shares * p.price_per_share + p.fee, 0);
+    const avgCost = totalShares > 0 ? totalCost / totalShares : null;
+    const totalValue = currentPrice ? totalShares * currentPrice : null;
+    const totalGainPct = avgCost && currentPrice ? ((currentPrice - avgCost) / avgCost) * 100 : null;
+    return {
+      holding,
+      purchases: enriched,
+      summary: { totalShares, totalCost, avgCost, currentPrice, totalValue, totalGainPct: totalGainPct ? Math.round(totalGainPct * 100) / 100 : null },
+    };
+  });
+
+  app.post("/api/pa/inv/holdings/:holdingId/purchases", async (request, reply) => {
+    const holding = db.inv.getHolding(request.params.holdingId);
+    if (!holding) return reply.code(404).send({ error: "Holding not found" });
+    const body = request.body || {};
+    if (!body.purchaseDate) return reply.code(400).send({ error: "purchaseDate is required" });
+    if (!body.shares || body.shares <= 0) return reply.code(400).send({ error: "shares must be > 0" });
+    if (!body.pricePerShare || body.pricePerShare <= 0) return reply.code(400).send({ error: "pricePerShare must be > 0" });
+    const purchase = db.inv.insertPurchase({ id: randomUUID(), holdingId: holding.id, symbol: holding.symbol, ...body });
+    return reply.code(201).send({ purchase });
+  });
+
+  app.patch("/api/pa/inv/holdings/:holdingId/purchases/:purchaseId", async (request, reply) => {
+    const holding = db.inv.getHolding(request.params.holdingId);
+    if (!holding) return reply.code(404).send({ error: "Holding not found" });
+    const existing = db.inv.getPurchase(request.params.purchaseId);
+    if (!existing) return reply.code(404).send({ error: "Purchase not found" });
+    const purchase = db.inv.updatePurchase({ ...existing, ...(request.body || {}), id: existing.id });
+    return { purchase };
+  });
+
+  app.delete("/api/pa/inv/holdings/:holdingId/purchases/:purchaseId", async (request, reply) => {
+    if (!db.inv.getPurchase(request.params.purchaseId)) return reply.code(404).send({ error: "Not found" });
+    db.inv.deletePurchase(request.params.purchaseId);
+    return reply.code(204).send();
+  });
+
+  app.get("/api/pa/inv/news-sources", async () => {
+    return { entries: db.inv.listNewsSources() };
+  });
+
+  app.post("/api/pa/inv/news-sources", async (request, reply) => {
+    const body = request.body || {};
+    if (!body.name) return reply.code(400).send({ error: "name is required" });
+    if (!body.url) return reply.code(400).send({ error: "url is required" });
+    const source = db.inv.upsertNewsSource({ id: randomUUID(), ...body });
+    return reply.code(201).send({ source });
+  });
+
+  app.patch("/api/pa/inv/news-sources/:sourceId", async (request, reply) => {
+    const sources = db.inv.listNewsSources();
+    const existing = sources.find(s => s.id === request.params.sourceId);
+    if (!existing) return reply.code(404).send({ error: "Source not found" });
+    const source = db.inv.upsertNewsSource({ ...existing, ...(request.body || {}), id: existing.id });
+    return { source };
+  });
+
+  app.delete("/api/pa/inv/news-sources/:sourceId", async (request, reply) => {
+    db.inv.deleteNewsSource(request.params.sourceId);
+    return reply.code(204).send();
+  });
+
+  app.get("/api/pa/inv/news", async (request) => {
+    const { symbol, limit } = request.query;
+    const articles = db.inv.listNewsArticles({ symbol, limit: limit ? Number(limit) : 50 });
+    return { generatedAt: nowIso(), total: articles.length, entries: articles };
+  });
+
+  app.post("/api/pa/inv/news/fetch", async (request) => {
+    const sources = db.inv.listNewsSources().filter(s => s.enabled);
+    const watchlist = db.inv.listWatchlist();
+    const symbols = watchlist.map(w => w.symbol);
+    const allKeywords = [...symbols, ...watchlist.map(w => w.name), 'stock market', 'investing', 'ETF'];
+    let totalFetched = 0;
+
+    for (const source of sources) {
+      try {
+        const feedUrl = source.rss_url || source.url;
+        const resp = await fetch(feedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) continue;
+        const xml = await resp.text();
+        const items = [...xml.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/gi)];
+        for (const match of items.slice(0, 20)) {
+          const content = match[1];
+          const titleMatch = content.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]><\/title>|<title[^>]*>(.*?)<\/title>/si);
+          const linkMatch = content.match(/<link[^>]*>(.*?)<\/link>|<link>(.*?)<\/link>/si);
+          const descMatch = content.match(/<description[^>]*><!\[CDATA\[(.*?)\]\]><\/description>|<description[^>]*>(.*?)<\/description>/si);
+          const dateMatch = content.match(/<pubDate[^>]*>(.*?)<\/pubDate>/si);
+          const title = (titleMatch?.[1] || titleMatch?.[2] || '').trim();
+          const link = (linkMatch?.[1] || linkMatch?.[2] || '').trim();
+          const desc = (descMatch?.[1] || descMatch?.[2] || '').replace(/<[^>]+>/g, '').trim();
+          const pubDate = dateMatch?.[1]?.trim() || new Date().toISOString();
+          if (!title || !link) continue;
+          const titleLower = title.toLowerCase();
+          const descLower = desc.toLowerCase();
+          let matchedSymbol = '';
+          let relevance = 0.3;
+          for (const sym of symbols) {
+            if (titleLower.includes(sym.toLowerCase()) || descLower.includes(sym.toLowerCase())) {
+              matchedSymbol = sym;
+              relevance = 0.9;
+              break;
+            }
+          }
+          for (const kw of (source.keywords || [])) {
+            if (titleLower.includes(kw.toLowerCase())) { relevance = Math.max(relevance, 0.7); break; }
+          }
+          const posWords = ['surge','rally','gain','growth','profit','beat','record','strong','buy','upgrade'];
+          const negWords = ['fall','drop','loss','decline','miss','weak','sell','downgrade','crash','risk'];
+          const posCnt = posWords.filter(w => titleLower.includes(w)).length;
+          const negCnt = negWords.filter(w => titleLower.includes(w)).length;
+          const sentiment = posCnt > negCnt ? 'positive' : negCnt > posCnt ? 'negative' : 'neutral';
+          try {
+            db.inv.upsertArticle({ id: randomUUID(), sourceId: source.id, symbol: matchedSymbol, title, summary: desc.slice(0, 500), url: link, publishedAt: new Date(pubDate).toISOString(), sentiment, relevanceScore: relevance });
+            totalFetched++;
+          } catch (_e) {}
+        }
+        db.inv.upsertNewsSource({ ...source, lastFetchedAt: nowIso() });
+      } catch (_e) {}
+    }
+
+    return { fetched: totalFetched, sources: sources.length };
+  });
+
+  app.get("/api/pa/inv/advisor/signals", async (request) => {
+    const { symbol } = request.query;
+    const signals = db.inv.listAdvisorSignals({ symbol, limit: 50 });
+    return { generatedAt: nowIso(), entries: signals };
+  });
+
+  app.post("/api/pa/inv/advisor/analyse", async (request) => {
+    const watchlist = db.inv.listWatchlist().filter(w => w.enabled);
+    const results = [];
+
+    for (const item of watchlist) {
+      const history = db.inv.getPriceHistory(item.symbol, { days: 365 });
+      if (history.length < 20) {
+        results.push({ symbol: item.symbol, skipped: true, reason: 'insufficient data' });
+        continue;
+      }
+
+      const closes = history.map(h => h.close);
+      const n = closes.length;
+      const latest = closes[n - 1];
+
+      const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+      const sma50 = n >= 50 ? closes.slice(-50).reduce((a, b) => a + b, 0) / 50 : null;
+      const sma200 = n >= 200 ? closes.slice(-200).reduce((a, b) => a + b, 0) / 200 : null;
+
+      const gains = [], losses = [];
+      for (let i = 1; i < Math.min(15, n); i++) {
+        const diff = closes[n - i] - closes[n - i - 1];
+        if (diff >= 0) gains.push(diff); else losses.push(Math.abs(diff));
+      }
+      const avgGain = gains.length ? gains.reduce((a, b) => a + b, 0) / 14 : 0;
+      const avgLoss = losses.length ? losses.reduce((a, b) => a + b, 0) / 14 : 0.0001;
+      const rs = avgGain / avgLoss;
+      const rsi = 100 - (100 / (1 + rs));
+
+      const high52 = Math.max(...closes.slice(-252 < 0 ? 0 : -252));
+      const low52 = Math.min(...closes.slice(-252 < 0 ? 0 : -252));
+      const pctFrom52High = ((latest - high52) / high52) * 100;
+      const pctFrom52Low = ((latest - low52) / low52) * 100;
+
+      const recentVol = closes.slice(-20);
+      const meanRecent = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
+      const variance = recentVol.reduce((s, v) => s + Math.pow(v - meanRecent, 2), 0) / recentVol.length;
+      const stdDev = Math.sqrt(variance);
+      const volatilityPct = (stdDev / meanRecent) * 100;
+
+      const momentum1m = n >= 20 ? ((latest - closes[n - 20]) / closes[n - 20]) * 100 : null;
+      const momentum3m = n >= 60 ? ((latest - closes[n - 60]) / closes[n - 60]) * 100 : null;
+
+      let direction = 'neutral';
+      let strength = 0.5;
+      const reasons = [];
+
+      if (rsi < 30) { direction = 'buy'; strength += 0.25; reasons.push(`RSI oversold (${rsi.toFixed(1)})`); }
+      else if (rsi > 70) { direction = 'sell'; strength += 0.2; reasons.push(`RSI overbought (${rsi.toFixed(1)})`); }
+      else reasons.push(`RSI neutral (${rsi.toFixed(1)})`);
+
+      if (sma200 && latest > sma200 && latest > sma50) { if (direction !== 'sell') { direction = 'buy'; strength += 0.15; } reasons.push('Price above SMA50 & SMA200 (golden zone)'); }
+      else if (sma200 && latest < sma200) { if (direction !== 'buy') { direction = 'sell'; strength += 0.1; } reasons.push('Price below SMA200 (bearish)'); }
+
+      if (pctFrom52High < -20) { if (direction !== 'sell') direction = 'buy'; strength += 0.1; reasons.push(`${Math.abs(pctFrom52High).toFixed(1)}% below 52-week high — potential value`); }
+
+      if (momentum1m !== null && momentum1m > 5) { if (direction !== 'sell') direction = 'buy'; strength += 0.05; reasons.push(`Positive 1-month momentum (+${momentum1m.toFixed(1)}%)`); }
+      else if (momentum1m !== null && momentum1m < -5) { strength -= 0.05; reasons.push(`Negative 1-month momentum (${momentum1m.toFixed(1)}%)`); }
+
+      strength = Math.min(1, Math.max(0, strength));
+
+      const signalType = direction === 'buy' ? 'entry-opportunity' : direction === 'sell' ? 'exit-signal' : 'hold';
+      const sig = db.inv.insertAdvisorSignal({
+        id: randomUUID(),
+        symbol: item.symbol,
+        signalType,
+        direction,
+        strength,
+        rationale: reasons.join('. '),
+        indicators: { rsi, sma20, sma50, sma200, pctFrom52High, pctFrom52Low, volatilityPct, momentum1m, momentum3m, latest },
+        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      });
+      results.push({ symbol: item.symbol, signal: sig });
+    }
+
+    return { generatedAt: nowIso(), analysed: results.filter(r => !r.skipped).length, skipped: results.filter(r => r.skipped).length, results };
+  });
 }
 
 export default paRoutes;

@@ -177,6 +177,119 @@ CREATE INDEX IF NOT EXISTS idx_pa_li_reporting_snapshots_date
   ON pa_li_reporting_snapshots (snapshot_date DESC);
 `;
 
+const PA_INV_SCHEMA = `
+CREATE TABLE IF NOT EXISTS pa_inv_watchlist (
+  id TEXT PRIMARY KEY,
+  symbol TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  asset_type TEXT NOT NULL DEFAULT 'stock',
+  currency TEXT NOT NULL DEFAULT 'USD',
+  exchange TEXT NOT NULL DEFAULT '',
+  sector TEXT NOT NULL DEFAULT '',
+  isin TEXT NOT NULL DEFAULT '',
+  color TEXT NOT NULL DEFAULT '#0F766E',
+  chart_order INTEGER NOT NULL DEFAULT 0,
+  notes TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pa_inv_portfolio_holdings (
+  id TEXT PRIMARY KEY,
+  symbol TEXT NOT NULL,
+  name TEXT NOT NULL,
+  asset_type TEXT NOT NULL DEFAULT 'stock',
+  currency TEXT NOT NULL DEFAULT 'USD',
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pa_inv_holdings_symbol
+  ON pa_inv_portfolio_holdings (symbol);
+
+CREATE TABLE IF NOT EXISTS pa_inv_purchases (
+  id TEXT PRIMARY KEY,
+  holding_id TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  purchase_date TEXT NOT NULL,
+  shares REAL NOT NULL,
+  price_per_share REAL NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  fee REAL NOT NULL DEFAULT 0,
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_inv_purchases_holding
+  ON pa_inv_purchases (holding_id, purchase_date ASC);
+
+CREATE TABLE IF NOT EXISTS pa_inv_price_cache (
+  symbol TEXT NOT NULL,
+  date TEXT NOT NULL,
+  open REAL,
+  high REAL,
+  low REAL,
+  close REAL NOT NULL,
+  volume INTEGER,
+  source TEXT NOT NULL DEFAULT 'yahoo',
+  fetched_at TEXT NOT NULL,
+  PRIMARY KEY (symbol, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_inv_price_cache_symbol_date
+  ON pa_inv_price_cache (symbol, date DESC);
+
+CREATE TABLE IF NOT EXISTS pa_inv_news_sources (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  rss_url TEXT NOT NULL DEFAULT '',
+  keywords TEXT NOT NULL DEFAULT '[]',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_fetched_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pa_inv_news_articles (
+  id TEXT PRIMARY KEY,
+  source_id TEXT,
+  symbol TEXT NOT NULL DEFAULT '',
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL,
+  published_at TEXT NOT NULL,
+  sentiment TEXT NOT NULL DEFAULT 'neutral',
+  relevance_score REAL NOT NULL DEFAULT 0.5,
+  fetched_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_inv_news_articles_symbol_date
+  ON pa_inv_news_articles (symbol, published_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_pa_inv_news_articles_published
+  ON pa_inv_news_articles (published_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_inv_advisor_signals (
+  id TEXT PRIMARY KEY,
+  symbol TEXT NOT NULL,
+  signal_type TEXT NOT NULL,
+  direction TEXT NOT NULL DEFAULT 'neutral',
+  strength REAL NOT NULL DEFAULT 0.5,
+  rationale TEXT NOT NULL DEFAULT '',
+  indicators TEXT NOT NULL DEFAULT '{}',
+  generated_at TEXT NOT NULL,
+  valid_until TEXT,
+  acted_on INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_inv_advisor_signals_symbol
+  ON pa_inv_advisor_signals (symbol, generated_at DESC);
+`;
+
 const PA_SCHEMA = `
 CREATE TABLE IF NOT EXISTS pa_configuration (
   key TEXT PRIMARY KEY,
@@ -769,6 +882,7 @@ export function initControlPlaneDb(env) {
   connection.exec(SCHEMA);
   connection.exec(PA_SCHEMA);
   connection.exec(PA_LI_SCHEMA);
+  connection.exec(PA_INV_SCHEMA);
   ensureChatSessionSchema(connection);
   ensureRequestedSkillSchema(connection);
   ensureTaskMetadataSchema(connection);
@@ -1680,6 +1794,125 @@ export function initControlPlaneDb(env) {
         const recentRuns = connection.prepare(`SELECT r.*, t.name as task_name FROM pa_li_automation_runs r LEFT JOIN pa_li_automation_tasks t ON t.id = r.task_id ORDER BY r.started_at DESC LIMIT 5`).all().map(r => ({ ...r, result: JSON.parse(r.result) }));
         const weeklyOutreach = connection.prepare(`SELECT date(sent_at) as day, COUNT(*) as count FROM pa_li_outreach_queue WHERE status IN ('sent','replied','accepted') AND sent_at >= date('now','-30 days') GROUP BY day ORDER BY day ASC`).all();
         return { totalProfiles, totalSegments, activeCampaigns, outreachSentWeek, outreachReplied, totalOutreachSent, replyRate, pendingTargets, cityCounts, recentRuns, weeklyOutreach };
+      },
+    },
+    inv: {
+      listWatchlist() {
+        return connection.prepare(`SELECT * FROM pa_inv_watchlist ORDER BY chart_order ASC, created_at ASC`).all().map(r => ({ ...r, enabled: Boolean(r.enabled) }));
+      },
+      getWatchlistItem(id) {
+        const r = connection.prepare(`SELECT * FROM pa_inv_watchlist WHERE id = ?`).get(id);
+        return r ? { ...r, enabled: Boolean(r.enabled) } : null;
+      },
+      getWatchlistBySymbol(symbol) {
+        const r = connection.prepare(`SELECT * FROM pa_inv_watchlist WHERE symbol = ?`).get(symbol);
+        return r ? { ...r, enabled: Boolean(r.enabled) } : null;
+      },
+      upsertWatchlistItem(item) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_inv_watchlist WHERE id = ?`).get(item.id);
+        const row = { id: item.id, symbol: (item.symbol||'').toUpperCase(), name: item.name, asset_type: item.assetType||item.asset_type||'stock', currency: item.currency||'USD', exchange: item.exchange||'', sector: item.sector||'', isin: item.isin||'', color: item.color||'#0F766E', chart_order: item.chartOrder||item.chart_order||0, notes: item.notes||'', enabled: item.enabled!==false?1:0, created_at: item.createdAt||item.created_at||now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_inv_watchlist SET symbol=@symbol,name=@name,asset_type=@asset_type,currency=@currency,exchange=@exchange,sector=@sector,isin=@isin,color=@color,chart_order=@chart_order,notes=@notes,enabled=@enabled,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_inv_watchlist (id,symbol,name,asset_type,currency,exchange,sector,isin,color,chart_order,notes,enabled,created_at,updated_at) VALUES (@id,@symbol,@name,@asset_type,@currency,@exchange,@sector,@isin,@color,@chart_order,@notes,@enabled,@created_at,@updated_at)`).run(row);
+        }
+        return db.inv.getWatchlistItem(item.id);
+      },
+      deleteWatchlistItem(id) {
+        connection.prepare(`DELETE FROM pa_inv_watchlist WHERE id = ?`).run(id);
+      },
+      listHoldings() {
+        return connection.prepare(`SELECT * FROM pa_inv_portfolio_holdings ORDER BY symbol ASC`).all();
+      },
+      getHolding(id) {
+        return connection.prepare(`SELECT * FROM pa_inv_portfolio_holdings WHERE id = ?`).get(id) || null;
+      },
+      getHoldingBySymbol(symbol) {
+        return connection.prepare(`SELECT * FROM pa_inv_portfolio_holdings WHERE symbol = ?`).get(symbol) || null;
+      },
+      upsertHolding(h) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_inv_portfolio_holdings WHERE id = ?`).get(h.id);
+        const row = { id: h.id, symbol: (h.symbol||'').toUpperCase(), name: h.name, asset_type: h.assetType||h.asset_type||'stock', currency: h.currency||'USD', notes: h.notes||'', created_at: h.createdAt||h.created_at||now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_inv_portfolio_holdings SET symbol=@symbol,name=@name,asset_type=@asset_type,currency=@currency,notes=@notes,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_inv_portfolio_holdings (id,symbol,name,asset_type,currency,notes,created_at,updated_at) VALUES (@id,@symbol,@name,@asset_type,@currency,@notes,@created_at,@updated_at)`).run(row);
+        }
+        return db.inv.getHolding(h.id);
+      },
+      deleteHolding(id) {
+        connection.prepare(`DELETE FROM pa_inv_purchases WHERE holding_id = ?`).run(id);
+        connection.prepare(`DELETE FROM pa_inv_portfolio_holdings WHERE id = ?`).run(id);
+      },
+      listPurchases(holdingId) {
+        return connection.prepare(`SELECT * FROM pa_inv_purchases WHERE holding_id = ? ORDER BY purchase_date ASC`).all(holdingId);
+      },
+      getPurchase(id) {
+        return connection.prepare(`SELECT * FROM pa_inv_purchases WHERE id = ?`).get(id) || null;
+      },
+      insertPurchase(p) {
+        const now = nowIso();
+        const row = { id: p.id, holding_id: p.holdingId||p.holding_id, symbol: (p.symbol||'').toUpperCase(), purchase_date: p.purchaseDate||p.purchase_date, shares: p.shares, price_per_share: p.pricePerShare||p.price_per_share, currency: p.currency||'USD', fee: p.fee||0, notes: p.notes||'', created_at: now, updated_at: now };
+        connection.prepare(`INSERT INTO pa_inv_purchases (id,holding_id,symbol,purchase_date,shares,price_per_share,currency,fee,notes,created_at,updated_at) VALUES (@id,@holding_id,@symbol,@purchase_date,@shares,@price_per_share,@currency,@fee,@notes,@created_at,@updated_at)`).run(row);
+        return db.inv.getPurchase(p.id);
+      },
+      updatePurchase(p) {
+        const now = nowIso();
+        connection.prepare(`UPDATE pa_inv_purchases SET purchase_date=@purchase_date,shares=@shares,price_per_share=@price_per_share,currency=@currency,fee=@fee,notes=@notes,updated_at=@updated_at WHERE id=@id`).run({ id: p.id, purchase_date: p.purchaseDate||p.purchase_date, shares: p.shares, price_per_share: p.pricePerShare||p.price_per_share, currency: p.currency||'USD', fee: p.fee||0, notes: p.notes||'', updated_at: now });
+        return db.inv.getPurchase(p.id);
+      },
+      deletePurchase(id) {
+        connection.prepare(`DELETE FROM pa_inv_purchases WHERE id = ?`).run(id);
+      },
+      cachePrices(symbol, rows) {
+        const stmt = connection.prepare(`INSERT OR REPLACE INTO pa_inv_price_cache (symbol,date,open,high,low,close,volume,source,fetched_at) VALUES (?,?,?,?,?,?,?,?,?)`);
+        const tx = connection.transaction(() => { for (const r of rows) stmt.run(symbol, r.date, r.open||null, r.high||null, r.low||null, r.close, r.volume||null, r.source||'yahoo', nowIso()); });
+        tx();
+      },
+      getPriceHistory(symbol, { days = 365 } = {}) {
+        return connection.prepare(`SELECT date,open,high,low,close,volume FROM pa_inv_price_cache WHERE symbol = ? AND date >= date('now','-'||?||' days') ORDER BY date ASC`).all(symbol, days);
+      },
+      getLatestPrice(symbol) {
+        return connection.prepare(`SELECT close,date FROM pa_inv_price_cache WHERE symbol = ? ORDER BY date DESC LIMIT 1`).get(symbol) || null;
+      },
+      listNewsSources() {
+        return connection.prepare(`SELECT * FROM pa_inv_news_sources ORDER BY name ASC`).all().map(r => ({ ...r, keywords: JSON.parse(r.keywords), enabled: Boolean(r.enabled) }));
+      },
+      upsertNewsSource(s) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_inv_news_sources WHERE id = ?`).get(s.id);
+        const row = { id: s.id, name: s.name, url: s.url, rss_url: s.rssUrl||s.rss_url||'', keywords: JSON.stringify(s.keywords||[]), enabled: s.enabled!==false?1:0, last_fetched_at: s.lastFetchedAt||s.last_fetched_at||null, created_at: s.createdAt||s.created_at||now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_inv_news_sources SET name=@name,url=@url,rss_url=@rss_url,keywords=@keywords,enabled=@enabled,last_fetched_at=@last_fetched_at,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_inv_news_sources (id,name,url,rss_url,keywords,enabled,last_fetched_at,created_at,updated_at) VALUES (@id,@name,@url,@rss_url,@keywords,@enabled,@last_fetched_at,@created_at,@updated_at)`).run(row);
+        }
+        return connection.prepare(`SELECT * FROM pa_inv_news_sources WHERE id = ?`).get(row.id);
+      },
+      deleteNewsSource(id) {
+        connection.prepare(`DELETE FROM pa_inv_news_sources WHERE id = ?`).run(id);
+      },
+      listNewsArticles({ symbol, limit = 50, offset = 0 } = {}) {
+        const where = symbol ? `WHERE symbol = ? OR symbol = ''` : ``;
+        const args = symbol ? [symbol, limit, offset] : [limit, offset];
+        return connection.prepare(`SELECT * FROM pa_inv_news_articles ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`).all(...args);
+      },
+      upsertArticle(a) {
+        const row = { id: a.id, source_id: a.sourceId||a.source_id||null, symbol: a.symbol||'', title: a.title, summary: a.summary||'', url: a.url, published_at: a.publishedAt||a.published_at, sentiment: a.sentiment||'neutral', relevance_score: a.relevanceScore||a.relevance_score||0.5, fetched_at: nowIso() };
+        connection.prepare(`INSERT OR REPLACE INTO pa_inv_news_articles (id,source_id,symbol,title,summary,url,published_at,sentiment,relevance_score,fetched_at) VALUES (@id,@source_id,@symbol,@title,@summary,@url,@published_at,@sentiment,@relevance_score,@fetched_at)`).run(row);
+        return connection.prepare(`SELECT * FROM pa_inv_news_articles WHERE id = ?`).get(row.id);
+      },
+      listAdvisorSignals({ symbol, limit = 20 } = {}) {
+        const where = symbol ? `WHERE symbol = ?` : ``;
+        const args = symbol ? [symbol, limit] : [limit];
+        return connection.prepare(`SELECT * FROM pa_inv_advisor_signals ${where} ORDER BY generated_at DESC LIMIT ?`).all(...args).map(r => ({ ...r, indicators: JSON.parse(r.indicators), acted_on: Boolean(r.acted_on) }));
+      },
+      insertAdvisorSignal(sig) {
+        const row = { id: sig.id, symbol: (sig.symbol||'').toUpperCase(), signal_type: sig.signalType||sig.signal_type, direction: sig.direction||'neutral', strength: sig.strength||0.5, rationale: sig.rationale||'', indicators: JSON.stringify(sig.indicators||{}), generated_at: nowIso(), valid_until: sig.validUntil||sig.valid_until||null, acted_on: 0 };
+        connection.prepare(`INSERT INTO pa_inv_advisor_signals (id,symbol,signal_type,direction,strength,rationale,indicators,generated_at,valid_until,acted_on) VALUES (@id,@symbol,@signal_type,@direction,@strength,@rationale,@indicators,@generated_at,@valid_until,@acted_on)`).run(row);
+        return connection.prepare(`SELECT * FROM pa_inv_advisor_signals WHERE id = ?`).get(row.id);
       },
     },
     close() {
