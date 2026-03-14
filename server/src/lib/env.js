@@ -102,5 +102,9 @@ export function loadEnv(source = process.env) {
     anthropicApiVersion: source.ANTHROPIC_API_VERSION || "2023-06-01",
     anthropicTimeoutMs: source.ANTHROPIC_TIMEOUT_MS || "30000",
     lavprisProvisionToken: source.LAVPRIS_PROVISION_TOKEN || "",
+    nordnetApiKey: source.NORDNET_API_KEY || "",
+    nordnetPrivateKeyPath: source.NORDNET_PRIVATE_KEY_PATH || "",
+    nordnetCountry: source.NORDNET_COUNTRY || "dk",
+    nordnetBaseUrl: source.NORDNET_BASE_URL || "https://www.nordnet.dk/api/2",
   });
 }

@@ -27,7 +27,9 @@ import { projectRoutes } from "./routes/projects.js";
 import { programRoutes } from "./routes/programs.js";
 import { systemMapRoutes } from "./routes/system-map.js";
 import { paRoutes } from "./routes/pa.js";
+import { nordnetRoutes } from "./routes/nordnet.js";
 import { workRoutes } from "./routes/work.js";
+import { createNordnetSession } from "./lib/nordnet-session.js";
 
 const DELIVERED_PAGES = [
   {
@@ -244,6 +246,9 @@ export async function createApp(options = {}) {
 
       return registries;
     });
+  const nordnetSession =
+    options.nordnetSession || createNordnetSession(env);
+
   const lavprisRolloutService =
     options.lavprisRolloutService ||
     createLavprisRolloutService({
@@ -304,6 +309,7 @@ export async function createApp(options = {}) {
     workService,
     lavprisClientAgents,
     lavprisRolloutService,
+    nordnetSession,
     modelCatalog,
     pageCatalog,
     startedAt,
@@ -336,6 +342,7 @@ export async function createApp(options = {}) {
   await app.register(systemMapRoutes);
   await app.register(workRoutes);
   await app.register(paRoutes);
+  await app.register(nordnetRoutes);
   await app.register(lavprisRoutes, {
     requireInternalAccess: true,
     internalApiToken,

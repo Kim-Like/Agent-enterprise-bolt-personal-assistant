@@ -290,6 +290,83 @@ CREATE INDEX IF NOT EXISTS idx_pa_inv_advisor_signals_symbol
   ON pa_inv_advisor_signals (symbol, generated_at DESC);
 `;
 
+const PA_NORDNET_SCHEMA = `
+CREATE TABLE IF NOT EXISTS pa_nordnet_accounts (
+  account_id TEXT PRIMARY KEY,
+  label TEXT NOT NULL DEFAULT '',
+  account_type TEXT NOT NULL DEFAULT 'investment',
+  currency TEXT NOT NULL DEFAULT 'DKK',
+  total_value REAL,
+  own_capital REAL,
+  buying_power REAL,
+  synced_at TEXT NOT NULL,
+  raw_data TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS pa_nordnet_positions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  instrument_id TEXT NOT NULL DEFAULT '',
+  isin TEXT NOT NULL DEFAULT '',
+  symbol TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL DEFAULT '',
+  quantity REAL NOT NULL DEFAULT 0,
+  avg_price REAL,
+  last_price REAL,
+  market_value REAL,
+  unrealized_pnl REAL,
+  unrealized_pnl_pct REAL,
+  currency TEXT NOT NULL DEFAULT 'DKK',
+  synced_at TEXT NOT NULL,
+  raw_data TEXT NOT NULL DEFAULT '{}',
+  UNIQUE(account_id, instrument_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_nordnet_positions_account
+  ON pa_nordnet_positions (account_id, synced_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_nordnet_orders (
+  order_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  instrument_id TEXT NOT NULL DEFAULT '',
+  isin TEXT NOT NULL DEFAULT '',
+  symbol TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL DEFAULT '',
+  order_type TEXT NOT NULL DEFAULT 'LIMIT',
+  side TEXT NOT NULL DEFAULT 'BUY',
+  quantity REAL NOT NULL DEFAULT 0,
+  price REAL,
+  status TEXT NOT NULL DEFAULT 'active',
+  currency TEXT NOT NULL DEFAULT 'DKK',
+  created_at_nordnet TEXT,
+  synced_at TEXT NOT NULL,
+  raw_data TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_nordnet_orders_account
+  ON pa_nordnet_orders (account_id, synced_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_nordnet_trades (
+  trade_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  instrument_id TEXT NOT NULL DEFAULT '',
+  isin TEXT NOT NULL DEFAULT '',
+  symbol TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL DEFAULT '',
+  side TEXT NOT NULL DEFAULT 'BUY',
+  quantity REAL NOT NULL DEFAULT 0,
+  price REAL NOT NULL DEFAULT 0,
+  amount REAL NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'DKK',
+  traded_at TEXT NOT NULL,
+  synced_at TEXT NOT NULL,
+  raw_data TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_nordnet_trades_account_traded_at
+  ON pa_nordnet_trades (account_id, traded_at DESC);
+`;
+
 const PA_SCHEMA = `
 CREATE TABLE IF NOT EXISTS pa_configuration (
   key TEXT PRIMARY KEY,
@@ -883,6 +960,7 @@ export function initControlPlaneDb(env) {
   connection.exec(PA_SCHEMA);
   connection.exec(PA_LI_SCHEMA);
   connection.exec(PA_INV_SCHEMA);
+  connection.exec(PA_NORDNET_SCHEMA);
   ensureChatSessionSchema(connection);
   ensureRequestedSkillSchema(connection);
   ensureTaskMetadataSchema(connection);
@@ -1913,6 +1991,50 @@ export function initControlPlaneDb(env) {
         const row = { id: sig.id, symbol: (sig.symbol||'').toUpperCase(), signal_type: sig.signalType||sig.signal_type, direction: sig.direction||'neutral', strength: sig.strength||0.5, rationale: sig.rationale||'', indicators: JSON.stringify(sig.indicators||{}), generated_at: nowIso(), valid_until: sig.validUntil||sig.valid_until||null, acted_on: 0 };
         connection.prepare(`INSERT INTO pa_inv_advisor_signals (id,symbol,signal_type,direction,strength,rationale,indicators,generated_at,valid_until,acted_on) VALUES (@id,@symbol,@signal_type,@direction,@strength,@rationale,@indicators,@generated_at,@valid_until,@acted_on)`).run(row);
         return connection.prepare(`SELECT * FROM pa_inv_advisor_signals WHERE id = ?`).get(row.id);
+      },
+    },
+    nordnet: {
+      upsertAccount(a) {
+        const row = { account_id: String(a.accountId || a.account_id), label: a.label || '', account_type: a.accountType || a.account_type || 'investment', currency: a.currency || 'DKK', total_value: a.totalValue ?? a.total_value ?? null, own_capital: a.ownCapital ?? a.own_capital ?? null, buying_power: a.buyingPower ?? a.buying_power ?? null, synced_at: nowIso(), raw_data: JSON.stringify(a.rawData || a.raw_data || {}) };
+        connection.prepare(`INSERT OR REPLACE INTO pa_nordnet_accounts (account_id,label,account_type,currency,total_value,own_capital,buying_power,synced_at,raw_data) VALUES (@account_id,@label,@account_type,@currency,@total_value,@own_capital,@buying_power,@synced_at,@raw_data)`).run(row);
+        return connection.prepare(`SELECT * FROM pa_nordnet_accounts WHERE account_id = ?`).get(row.account_id);
+      },
+      listAccounts() {
+        return connection.prepare(`SELECT * FROM pa_nordnet_accounts ORDER BY account_type ASC`).all().map(r => ({ ...r, raw_data: JSON.parse(r.raw_data) }));
+      },
+      upsertPosition(p) {
+        const id = `${p.accountId || p.account_id}:${p.instrumentId || p.instrument_id}`;
+        const row = { id, account_id: String(p.accountId || p.account_id), instrument_id: p.instrumentId || p.instrument_id || '', isin: p.isin || '', symbol: (p.symbol || '').toUpperCase(), name: p.name || '', quantity: p.quantity || 0, avg_price: p.avgPrice ?? p.avg_price ?? null, last_price: p.lastPrice ?? p.last_price ?? null, market_value: p.marketValue ?? p.market_value ?? null, unrealized_pnl: p.unrealizedPnl ?? p.unrealized_pnl ?? null, unrealized_pnl_pct: p.unrealizedPnlPct ?? p.unrealized_pnl_pct ?? null, currency: p.currency || 'DKK', synced_at: nowIso(), raw_data: JSON.stringify(p.rawData || p.raw_data || {}) };
+        connection.prepare(`INSERT OR REPLACE INTO pa_nordnet_positions (id,account_id,instrument_id,isin,symbol,name,quantity,avg_price,last_price,market_value,unrealized_pnl,unrealized_pnl_pct,currency,synced_at,raw_data) VALUES (@id,@account_id,@instrument_id,@isin,@symbol,@name,@quantity,@avg_price,@last_price,@market_value,@unrealized_pnl,@unrealized_pnl_pct,@currency,@synced_at,@raw_data)`).run(row);
+        return connection.prepare(`SELECT * FROM pa_nordnet_positions WHERE id = ?`).get(row.id);
+      },
+      listPositions(accountId) {
+        const where = accountId ? `WHERE account_id = ?` : '';
+        const args = accountId ? [String(accountId)] : [];
+        return connection.prepare(`SELECT * FROM pa_nordnet_positions ${where} ORDER BY market_value DESC NULLS LAST`).all(...args).map(r => ({ ...r, raw_data: JSON.parse(r.raw_data) }));
+      },
+      clearPositions(accountId) {
+        connection.prepare(`DELETE FROM pa_nordnet_positions WHERE account_id = ?`).run(String(accountId));
+      },
+      upsertOrder(o) {
+        const row = { order_id: String(o.orderId || o.order_id), account_id: String(o.accountId || o.account_id), instrument_id: o.instrumentId || o.instrument_id || '', isin: o.isin || '', symbol: (o.symbol || '').toUpperCase(), name: o.name || '', order_type: o.orderType || o.order_type || 'LIMIT', side: o.side || 'BUY', quantity: o.quantity || 0, price: o.price ?? null, status: o.status || 'active', currency: o.currency || 'DKK', created_at_nordnet: o.createdAt || o.created_at_nordnet || null, synced_at: nowIso(), raw_data: JSON.stringify(o.rawData || o.raw_data || {}) };
+        connection.prepare(`INSERT OR REPLACE INTO pa_nordnet_orders (order_id,account_id,instrument_id,isin,symbol,name,order_type,side,quantity,price,status,currency,created_at_nordnet,synced_at,raw_data) VALUES (@order_id,@account_id,@instrument_id,@isin,@symbol,@name,@order_type,@side,@quantity,@price,@status,@currency,@created_at_nordnet,@synced_at,@raw_data)`).run(row);
+        return connection.prepare(`SELECT * FROM pa_nordnet_orders WHERE order_id = ?`).get(row.order_id);
+      },
+      listOrders(accountId) {
+        const where = accountId ? `WHERE account_id = ?` : '';
+        const args = accountId ? [String(accountId)] : [];
+        return connection.prepare(`SELECT * FROM pa_nordnet_orders ${where} ORDER BY synced_at DESC`).all(...args).map(r => ({ ...r, raw_data: JSON.parse(r.raw_data) }));
+      },
+      upsertTrade(t) {
+        const row = { trade_id: String(t.tradeId || t.trade_id), account_id: String(t.accountId || t.account_id), instrument_id: t.instrumentId || t.instrument_id || '', isin: t.isin || '', symbol: (t.symbol || '').toUpperCase(), name: t.name || '', side: t.side || 'BUY', quantity: t.quantity || 0, price: t.price || 0, amount: t.amount || 0, currency: t.currency || 'DKK', traded_at: t.tradedAt || t.traded_at || nowIso(), synced_at: nowIso(), raw_data: JSON.stringify(t.rawData || t.raw_data || {}) };
+        connection.prepare(`INSERT OR REPLACE INTO pa_nordnet_trades (trade_id,account_id,instrument_id,isin,symbol,name,side,quantity,price,amount,currency,traded_at,synced_at,raw_data) VALUES (@trade_id,@account_id,@instrument_id,@isin,@symbol,@name,@side,@quantity,@price,@amount,@currency,@traded_at,@synced_at,@raw_data)`).run(row);
+        return connection.prepare(`SELECT * FROM pa_nordnet_trades WHERE trade_id = ?`).get(row.trade_id);
+      },
+      listTrades(accountId, { limit = 50 } = {}) {
+        const where = accountId ? `WHERE account_id = ?` : '';
+        const args = accountId ? [String(accountId), limit] : [limit];
+        return connection.prepare(`SELECT * FROM pa_nordnet_trades ${where} ORDER BY traded_at DESC LIMIT ?`).all(...args).map(r => ({ ...r, raw_data: JSON.parse(r.raw_data) }));
       },
     },
     close() {
