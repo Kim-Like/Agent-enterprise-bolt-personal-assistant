@@ -950,6 +950,20 @@ function ensureTaskMetadataSchema(connection) {
   migrate();
 }
 
+function ensureFitnessGamificationSchema(connection) {
+  const migrate = connection.transaction(() => {
+    const cols = tableInfo(connection, "pa_fitness_logs");
+    if (cols.length === 0) return;
+    if (!hasColumn(cols, "workout_meta")) {
+      connection.exec(`ALTER TABLE pa_fitness_logs ADD COLUMN workout_meta TEXT NOT NULL DEFAULT '{}'`);
+    }
+    if (!hasColumn(cols, "xp_earned")) {
+      connection.exec(`ALTER TABLE pa_fitness_logs ADD COLUMN xp_earned INTEGER NOT NULL DEFAULT 0`);
+    }
+  });
+  migrate();
+}
+
 export function initControlPlaneDb(env) {
   fs.mkdirSync(path.dirname(env.sqlitePath), { recursive: true });
 
@@ -961,6 +975,7 @@ export function initControlPlaneDb(env) {
   connection.exec(PA_LI_SCHEMA);
   connection.exec(PA_INV_SCHEMA);
   connection.exec(PA_NORDNET_SCHEMA);
+  ensureFitnessGamificationSchema(connection);
   ensureChatSessionSchema(connection);
   ensureRequestedSkillSchema(connection);
   ensureTaskMetadataSchema(connection);
@@ -1648,8 +1663,8 @@ export function initControlPlaneDb(env) {
       },
       insertFitnessLog(log) {
         const now = nowIso();
-        const p = { id: log.id, activity_type: log.activityType || log.activity_type, duration_minutes: log.durationMinutes || log.duration_minutes || null, distance_km: log.distanceKm || log.distance_km || null, calories: log.calories || null, notes: log.notes || '', logged_at: log.loggedAt || log.logged_at || now, source: log.source || 'manual', created_at: now };
-        connection.prepare(`INSERT INTO pa_fitness_logs (id,activity_type,duration_minutes,distance_km,calories,notes,logged_at,source,created_at) VALUES (@id,@activity_type,@duration_minutes,@distance_km,@calories,@notes,@logged_at,@source,@created_at)`).run(p);
+        const p = { id: log.id, activity_type: log.activityType || log.activity_type, duration_minutes: log.durationMinutes || log.duration_minutes || null, distance_km: log.distanceKm || log.distance_km || null, calories: log.calories || null, notes: log.notes || '', logged_at: log.loggedAt || log.logged_at || now, source: log.source || 'manual', workout_meta: log.workoutMeta || log.workout_meta || '{}', xp_earned: log.xpEarned || log.xp_earned || 0, created_at: now };
+        connection.prepare(`INSERT INTO pa_fitness_logs (id,activity_type,duration_minutes,distance_km,calories,notes,logged_at,source,workout_meta,xp_earned,created_at) VALUES (@id,@activity_type,@duration_minutes,@distance_km,@calories,@notes,@logged_at,@source,@workout_meta,@xp_earned,@created_at)`).run(p);
         return db.pa.getFitnessLog(log.id);
       },
       deleteFitnessLog(id) {
