@@ -3,6 +3,180 @@ import path from "node:path";
 
 import Database from "better-sqlite3";
 
+const PA_LI_SCHEMA = `
+CREATE TABLE IF NOT EXISTS pa_li_scraped_profiles (
+  id TEXT PRIMARY KEY,
+  linkedin_account_id TEXT,
+  profile_url TEXT NOT NULL,
+  full_name TEXT NOT NULL DEFAULT '',
+  headline TEXT NOT NULL DEFAULT '',
+  company TEXT NOT NULL DEFAULT '',
+  city TEXT NOT NULL DEFAULT '',
+  country TEXT NOT NULL DEFAULT 'Denmark',
+  connection_degree TEXT NOT NULL DEFAULT '2nd',
+  followers_count INTEGER,
+  connections_count INTEGER,
+  bio_summary TEXT NOT NULL DEFAULT '',
+  skills TEXT NOT NULL DEFAULT '[]',
+  interests TEXT NOT NULL DEFAULT '[]',
+  education TEXT NOT NULL DEFAULT '[]',
+  experience TEXT NOT NULL DEFAULT '[]',
+  avatar_url TEXT,
+  scraped_at TEXT NOT NULL,
+  enriched_at TEXT,
+  source TEXT NOT NULL DEFAULT 'manual',
+  raw_data TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_scraped_profiles_city
+  ON pa_li_scraped_profiles (city, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_scraped_profiles_account
+  ON pa_li_scraped_profiles (linkedin_account_id, scraped_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_li_segments (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  rules TEXT NOT NULL DEFAULT '[]',
+  member_count INTEGER NOT NULL DEFAULT 0,
+  last_refreshed_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pa_li_segment_members (
+  id TEXT PRIMARY KEY,
+  segment_id TEXT NOT NULL,
+  profile_id TEXT NOT NULL,
+  added_at TEXT NOT NULL,
+  UNIQUE(segment_id, profile_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_segment_members_segment
+  ON pa_li_segment_members (segment_id, added_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_li_automation_tasks (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  task_type TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  criteria TEXT NOT NULL DEFAULT '{}',
+  schedule TEXT NOT NULL DEFAULT 'manual',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  rate_limit_per_min INTEGER NOT NULL DEFAULT 10,
+  daily_cap INTEGER NOT NULL DEFAULT 100,
+  linkedin_account_id TEXT,
+  last_run_at TEXT,
+  last_run_status TEXT,
+  last_run_error TEXT,
+  run_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_automation_tasks_type
+  ON pa_li_automation_tasks (task_type, enabled);
+
+CREATE TABLE IF NOT EXISTS pa_li_automation_runs (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'running',
+  items_processed INTEGER NOT NULL DEFAULT 0,
+  items_found INTEGER NOT NULL DEFAULT 0,
+  items_failed INTEGER NOT NULL DEFAULT 0,
+  summary TEXT NOT NULL DEFAULT '',
+  error TEXT,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  result TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_automation_runs_task
+  ON pa_li_automation_runs (task_id, started_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_li_outreach_campaigns (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  segment_id TEXT,
+  linkedin_account_id TEXT,
+  message_template TEXT NOT NULL DEFAULT '',
+  connection_note TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'draft',
+  daily_limit INTEGER NOT NULL DEFAULT 20,
+  total_sent INTEGER NOT NULL DEFAULT 0,
+  total_replied INTEGER NOT NULL DEFAULT 0,
+  total_accepted INTEGER NOT NULL DEFAULT 0,
+  started_at TEXT,
+  paused_at TEXT,
+  completed_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_outreach_campaigns_status
+  ON pa_li_outreach_campaigns (status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_li_outreach_queue (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT NOT NULL,
+  profile_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  outreach_type TEXT NOT NULL DEFAULT 'connection',
+  scheduled_at TEXT,
+  sent_at TEXT,
+  replied_at TEXT,
+  accepted_at TEXT,
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_outreach_queue_campaign
+  ON pa_li_outreach_queue (campaign_id, status, scheduled_at ASC);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_outreach_queue_profile
+  ON pa_li_outreach_queue (profile_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS pa_li_scrape_targets (
+  id TEXT PRIMARY KEY,
+  linkedin_account_id TEXT,
+  profile_url TEXT NOT NULL,
+  full_name TEXT NOT NULL DEFAULT '',
+  reason TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  priority INTEGER NOT NULL DEFAULT 5,
+  assigned_task_id TEXT,
+  scraped_profile_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_scrape_targets_status
+  ON pa_li_scrape_targets (status, priority DESC, created_at ASC);
+
+CREATE TABLE IF NOT EXISTS pa_li_reporting_snapshots (
+  id TEXT PRIMARY KEY,
+  snapshot_date TEXT NOT NULL,
+  linkedin_account_id TEXT,
+  campaign_id TEXT,
+  profiles_scraped INTEGER NOT NULL DEFAULT 0,
+  profiles_enriched INTEGER NOT NULL DEFAULT 0,
+  outreach_sent INTEGER NOT NULL DEFAULT 0,
+  outreach_replied INTEGER NOT NULL DEFAULT 0,
+  connections_accepted INTEGER NOT NULL DEFAULT 0,
+  automation_runs INTEGER NOT NULL DEFAULT 0,
+  segment_count INTEGER NOT NULL DEFAULT 0,
+  total_profiles INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_li_reporting_snapshots_date
+  ON pa_li_reporting_snapshots (snapshot_date DESC);
+`;
+
 const PA_SCHEMA = `
 CREATE TABLE IF NOT EXISTS pa_configuration (
   key TEXT PRIMARY KEY,
@@ -594,6 +768,7 @@ export function initControlPlaneDb(env) {
   connection.pragma("foreign_keys = ON");
   connection.exec(SCHEMA);
   connection.exec(PA_SCHEMA);
+  connection.exec(PA_LI_SCHEMA);
   ensureChatSessionSchema(connection);
   ensureRequestedSkillSchema(connection);
   ensureTaskMetadataSchema(connection);
@@ -1309,6 +1484,202 @@ export function initControlPlaneDb(env) {
         const recentFitness = connection.prepare(`SELECT COUNT(*) as count FROM pa_fitness_logs WHERE logged_at >= date('now','-7 days')`).get()?.count || 0;
         const emailAccounts = connection.prepare(`SELECT COUNT(*) as count FROM pa_email_accounts`).get()?.count || 0;
         return { taskCounts, upcomingEvents, draftCount, recentFitness, emailAccounts };
+      },
+    },
+    li: {
+      listProfiles({ city, skills, interests, segmentId, search, limit = 50, offset = 0 } = {}) {
+        let q = `SELECT p.* FROM pa_li_scraped_profiles p`;
+        const args = [];
+        const conditions = [];
+        if (segmentId) {
+          q = `SELECT p.* FROM pa_li_scraped_profiles p INNER JOIN pa_li_segment_members sm ON sm.profile_id = p.id AND sm.segment_id = ?`;
+          args.push(segmentId);
+        }
+        if (city) { conditions.push(`p.city = ?`); args.push(city); }
+        if (search) { conditions.push(`(p.full_name LIKE ? OR p.headline LIKE ? OR p.company LIKE ?)`); args.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+        if (conditions.length) q += ` WHERE ` + conditions.join(' AND ');
+        q += ` ORDER BY p.scraped_at DESC LIMIT ? OFFSET ?`;
+        args.push(limit, offset);
+        return connection.prepare(q).all(...args).map(r => ({ ...r, skills: JSON.parse(r.skills), interests: JSON.parse(r.interests), education: JSON.parse(r.education), experience: JSON.parse(r.experience), rawData: JSON.parse(r.raw_data) }));
+      },
+      countProfiles({ city, segmentId, search } = {}) {
+        let q = `SELECT COUNT(*) as count FROM pa_li_scraped_profiles p`;
+        const args = [];
+        const conditions = [];
+        if (segmentId) {
+          q = `SELECT COUNT(*) as count FROM pa_li_scraped_profiles p INNER JOIN pa_li_segment_members sm ON sm.profile_id = p.id AND sm.segment_id = ?`;
+          args.push(segmentId);
+        }
+        if (city) { conditions.push(`p.city = ?`); args.push(city); }
+        if (search) { conditions.push(`(p.full_name LIKE ? OR p.headline LIKE ? OR p.company LIKE ?)`); args.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+        if (conditions.length) q += ` WHERE ` + conditions.join(' AND ');
+        return connection.prepare(q).get(...args)?.count || 0;
+      },
+      getProfile(id) {
+        const r = connection.prepare(`SELECT * FROM pa_li_scraped_profiles WHERE id = ?`).get(id);
+        if (!r) return null;
+        return { ...r, skills: JSON.parse(r.skills), interests: JSON.parse(r.interests), education: JSON.parse(r.education), experience: JSON.parse(r.experience), rawData: JSON.parse(r.raw_data) };
+      },
+      upsertProfile(p) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_li_scraped_profiles WHERE id = ?`).get(p.id);
+        const row = { id: p.id, linkedin_account_id: p.linkedinAccountId || p.linkedin_account_id || null, profile_url: p.profileUrl || p.profile_url, full_name: p.fullName || p.full_name || '', headline: p.headline || '', company: p.company || '', city: p.city || '', country: p.country || 'Denmark', connection_degree: p.connectionDegree || p.connection_degree || '2nd', followers_count: p.followersCount || p.followers_count || null, connections_count: p.connectionsCount || p.connections_count || null, bio_summary: p.bioSummary || p.bio_summary || '', skills: JSON.stringify(p.skills || []), interests: JSON.stringify(p.interests || []), education: JSON.stringify(p.education || []), experience: JSON.stringify(p.experience || []), avatar_url: p.avatarUrl || p.avatar_url || null, scraped_at: p.scrapedAt || p.scraped_at || now, enriched_at: p.enrichedAt || p.enriched_at || null, source: p.source || 'manual', raw_data: JSON.stringify(p.rawData || p.raw_data || {}), created_at: p.createdAt || p.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_li_scraped_profiles SET linkedin_account_id=@linkedin_account_id,profile_url=@profile_url,full_name=@full_name,headline=@headline,company=@company,city=@city,country=@country,connection_degree=@connection_degree,followers_count=@followers_count,connections_count=@connections_count,bio_summary=@bio_summary,skills=@skills,interests=@interests,education=@education,experience=@experience,avatar_url=@avatar_url,scraped_at=@scraped_at,enriched_at=@enriched_at,source=@source,raw_data=@raw_data,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_li_scraped_profiles (id,linkedin_account_id,profile_url,full_name,headline,company,city,country,connection_degree,followers_count,connections_count,bio_summary,skills,interests,education,experience,avatar_url,scraped_at,enriched_at,source,raw_data,created_at,updated_at) VALUES (@id,@linkedin_account_id,@profile_url,@full_name,@headline,@company,@city,@country,@connection_degree,@followers_count,@connections_count,@bio_summary,@skills,@interests,@education,@experience,@avatar_url,@scraped_at,@enriched_at,@source,@raw_data,@created_at,@updated_at)`).run(row);
+        }
+        return db.li.getProfile(p.id);
+      },
+      deleteProfile(id) {
+        connection.prepare(`DELETE FROM pa_li_segment_members WHERE profile_id = ?`).run(id);
+        connection.prepare(`DELETE FROM pa_li_scraped_profiles WHERE id = ?`).run(id);
+      },
+      listSegments() {
+        return connection.prepare(`SELECT * FROM pa_li_segments ORDER BY created_at DESC`).all().map(r => ({ ...r, rules: JSON.parse(r.rules) }));
+      },
+      getSegment(id) {
+        const r = connection.prepare(`SELECT * FROM pa_li_segments WHERE id = ?`).get(id);
+        return r ? { ...r, rules: JSON.parse(r.rules) } : null;
+      },
+      upsertSegment(s) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_li_segments WHERE id = ?`).get(s.id);
+        const row = { id: s.id, name: s.name, description: s.description || '', rules: JSON.stringify(s.rules || []), member_count: s.memberCount || s.member_count || 0, last_refreshed_at: s.lastRefreshedAt || s.last_refreshed_at || null, created_at: s.createdAt || s.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_li_segments SET name=@name,description=@description,rules=@rules,member_count=@member_count,last_refreshed_at=@last_refreshed_at,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_li_segments (id,name,description,rules,member_count,last_refreshed_at,created_at,updated_at) VALUES (@id,@name,@description,@rules,@member_count,@last_refreshed_at,@created_at,@updated_at)`).run(row);
+        }
+        return db.li.getSegment(s.id);
+      },
+      deleteSegment(id) {
+        connection.prepare(`DELETE FROM pa_li_segment_members WHERE segment_id = ?`).run(id);
+        connection.prepare(`DELETE FROM pa_li_segments WHERE id = ?`).run(id);
+      },
+      refreshSegmentMembers(segmentId, profileIds) {
+        const now = nowIso();
+        const del = connection.prepare(`DELETE FROM pa_li_segment_members WHERE segment_id = ?`);
+        const ins = connection.prepare(`INSERT OR IGNORE INTO pa_li_segment_members (id, segment_id, profile_id, added_at) VALUES (?, ?, ?, ?)`);
+        const tx = connection.transaction(() => {
+          del.run(segmentId);
+          for (const pid of profileIds) ins.run(nowIso() + Math.random(), segmentId, pid, now);
+          connection.prepare(`UPDATE pa_li_segments SET member_count = ?, last_refreshed_at = ?, updated_at = ? WHERE id = ?`).run(profileIds.length, now, now, segmentId);
+        });
+        tx();
+      },
+      listSegmentMembers(segmentId) {
+        return connection.prepare(`SELECT p.* FROM pa_li_scraped_profiles p INNER JOIN pa_li_segment_members sm ON sm.profile_id = p.id WHERE sm.segment_id = ? ORDER BY sm.added_at DESC`).all(segmentId).map(r => ({ ...r, skills: JSON.parse(r.skills), interests: JSON.parse(r.interests), education: JSON.parse(r.education), experience: JSON.parse(r.experience), rawData: JSON.parse(r.raw_data) }));
+      },
+      listAutomationTasks() {
+        return connection.prepare(`SELECT * FROM pa_li_automation_tasks ORDER BY created_at DESC`).all().map(r => ({ ...r, criteria: JSON.parse(r.criteria), enabled: Boolean(r.enabled) }));
+      },
+      getAutomationTask(id) {
+        const r = connection.prepare(`SELECT * FROM pa_li_automation_tasks WHERE id = ?`).get(id);
+        return r ? { ...r, criteria: JSON.parse(r.criteria), enabled: Boolean(r.enabled) } : null;
+      },
+      upsertAutomationTask(t) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_li_automation_tasks WHERE id = ?`).get(t.id);
+        const row = { id: t.id, name: t.name, task_type: t.taskType || t.task_type, description: t.description || '', criteria: JSON.stringify(t.criteria || {}), schedule: t.schedule || 'manual', enabled: t.enabled !== false ? 1 : 0, rate_limit_per_min: t.rateLimitPerMin || t.rate_limit_per_min || 10, daily_cap: t.dailyCap || t.daily_cap || 100, linkedin_account_id: t.linkedinAccountId || t.linkedin_account_id || null, last_run_at: t.lastRunAt || t.last_run_at || null, last_run_status: t.lastRunStatus || t.last_run_status || null, last_run_error: t.lastRunError || t.last_run_error || null, run_count: t.runCount || t.run_count || 0, created_at: t.createdAt || t.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_li_automation_tasks SET name=@name,task_type=@task_type,description=@description,criteria=@criteria,schedule=@schedule,enabled=@enabled,rate_limit_per_min=@rate_limit_per_min,daily_cap=@daily_cap,linkedin_account_id=@linkedin_account_id,last_run_at=@last_run_at,last_run_status=@last_run_status,last_run_error=@last_run_error,run_count=@run_count,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_li_automation_tasks (id,name,task_type,description,criteria,schedule,enabled,rate_limit_per_min,daily_cap,linkedin_account_id,last_run_at,last_run_status,last_run_error,run_count,created_at,updated_at) VALUES (@id,@name,@task_type,@description,@criteria,@schedule,@enabled,@rate_limit_per_min,@daily_cap,@linkedin_account_id,@last_run_at,@last_run_status,@last_run_error,@run_count,@created_at,@updated_at)`).run(row);
+        }
+        return db.li.getAutomationTask(t.id);
+      },
+      deleteAutomationTask(id) {
+        connection.prepare(`DELETE FROM pa_li_automation_tasks WHERE id = ?`).run(id);
+      },
+      listAutomationRuns(taskId, { limit = 20 } = {}) {
+        const where = taskId ? `WHERE task_id = ?` : ``;
+        const args = taskId ? [taskId, limit] : [limit];
+        return connection.prepare(`SELECT * FROM pa_li_automation_runs ${where} ORDER BY started_at DESC LIMIT ?`).all(...args).map(r => ({ ...r, result: JSON.parse(r.result) }));
+      },
+      insertAutomationRun(run) {
+        const now = nowIso();
+        const row = { id: run.id, task_id: run.taskId || run.task_id, status: run.status || 'running', items_processed: run.itemsProcessed || 0, items_found: run.itemsFound || 0, items_failed: run.itemsFailed || 0, summary: run.summary || '', error: run.error || null, started_at: run.startedAt || now, finished_at: run.finishedAt || null, result: JSON.stringify(run.result || {}) };
+        connection.prepare(`INSERT INTO pa_li_automation_runs (id,task_id,status,items_processed,items_found,items_failed,summary,error,started_at,finished_at,result) VALUES (@id,@task_id,@status,@items_processed,@items_found,@items_failed,@summary,@error,@started_at,@finished_at,@result)`).run(row);
+        return connection.prepare(`SELECT * FROM pa_li_automation_runs WHERE id = ?`).get(row.id);
+      },
+      updateAutomationRun(id, updates) {
+        const now = nowIso();
+        const existing = connection.prepare(`SELECT * FROM pa_li_automation_runs WHERE id = ?`).get(id);
+        if (!existing) return null;
+        const row = { ...existing, ...updates, finished_at: updates.finishedAt || updates.finished_at || existing.finished_at, result: JSON.stringify(updates.result || JSON.parse(existing.result)) };
+        connection.prepare(`UPDATE pa_li_automation_runs SET status=@status,items_processed=@items_processed,items_found=@items_found,items_failed=@items_failed,summary=@summary,error=@error,finished_at=@finished_at,result=@result WHERE id=@id`).run(row);
+        return connection.prepare(`SELECT * FROM pa_li_automation_runs WHERE id = ?`).get(id);
+      },
+      listCampaigns() {
+        return connection.prepare(`SELECT * FROM pa_li_outreach_campaigns ORDER BY created_at DESC`).all();
+      },
+      getCampaign(id) {
+        return connection.prepare(`SELECT * FROM pa_li_outreach_campaigns WHERE id = ?`).get(id) || null;
+      },
+      upsertCampaign(c) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_li_outreach_campaigns WHERE id = ?`).get(c.id);
+        const row = { id: c.id, name: c.name, segment_id: c.segmentId || c.segment_id || null, linkedin_account_id: c.linkedinAccountId || c.linkedin_account_id || null, message_template: c.messageTemplate || c.message_template || '', connection_note: c.connectionNote || c.connection_note || '', status: c.status || 'draft', daily_limit: c.dailyLimit || c.daily_limit || 20, total_sent: c.totalSent || c.total_sent || 0, total_replied: c.totalReplied || c.total_replied || 0, total_accepted: c.totalAccepted || c.total_accepted || 0, started_at: c.startedAt || c.started_at || null, paused_at: c.pausedAt || c.paused_at || null, completed_at: c.completedAt || c.completed_at || null, created_at: c.createdAt || c.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_li_outreach_campaigns SET name=@name,segment_id=@segment_id,linkedin_account_id=@linkedin_account_id,message_template=@message_template,connection_note=@connection_note,status=@status,daily_limit=@daily_limit,total_sent=@total_sent,total_replied=@total_replied,total_accepted=@total_accepted,started_at=@started_at,paused_at=@paused_at,completed_at=@completed_at,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_li_outreach_campaigns (id,name,segment_id,linkedin_account_id,message_template,connection_note,status,daily_limit,total_sent,total_replied,total_accepted,started_at,paused_at,completed_at,created_at,updated_at) VALUES (@id,@name,@segment_id,@linkedin_account_id,@message_template,@connection_note,@status,@daily_limit,@total_sent,@total_replied,@total_accepted,@started_at,@paused_at,@completed_at,@created_at,@updated_at)`).run(row);
+        }
+        return db.li.getCampaign(c.id);
+      },
+      deleteCampaign(id) {
+        connection.prepare(`DELETE FROM pa_li_outreach_queue WHERE campaign_id = ?`).run(id);
+        connection.prepare(`DELETE FROM pa_li_outreach_campaigns WHERE id = ?`).run(id);
+      },
+      listOutreachQueue(campaignId, { status, limit = 50, offset = 0 } = {}) {
+        let q = `SELECT q.*, p.full_name, p.headline, p.company, p.city, p.profile_url FROM pa_li_outreach_queue q LEFT JOIN pa_li_scraped_profiles p ON p.id = q.profile_id WHERE q.campaign_id = ?`;
+        const args = [campaignId];
+        if (status) { q += ` AND q.status = ?`; args.push(status); }
+        q += ` ORDER BY q.scheduled_at ASC, q.created_at ASC LIMIT ? OFFSET ?`;
+        args.push(limit, offset);
+        return connection.prepare(q).all(...args);
+      },
+      upsertOutreachItem(item) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_li_outreach_queue WHERE id = ?`).get(item.id);
+        const row = { id: item.id, campaign_id: item.campaignId || item.campaign_id, profile_id: item.profileId || item.profile_id, status: item.status || 'pending', outreach_type: item.outreachType || item.outreach_type || 'connection', scheduled_at: item.scheduledAt || item.scheduled_at || null, sent_at: item.sentAt || item.sent_at || null, replied_at: item.repliedAt || item.replied_at || null, accepted_at: item.acceptedAt || item.accepted_at || null, notes: item.notes || '', created_at: item.createdAt || item.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_li_outreach_queue SET status=@status,outreach_type=@outreach_type,scheduled_at=@scheduled_at,sent_at=@sent_at,replied_at=@replied_at,accepted_at=@accepted_at,notes=@notes,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_li_outreach_queue (id,campaign_id,profile_id,status,outreach_type,scheduled_at,sent_at,replied_at,accepted_at,notes,created_at,updated_at) VALUES (@id,@campaign_id,@profile_id,@status,@outreach_type,@scheduled_at,@sent_at,@replied_at,@accepted_at,@notes,@created_at,@updated_at)`).run(row);
+        }
+        return connection.prepare(`SELECT * FROM pa_li_outreach_queue WHERE id = ?`).get(row.id);
+      },
+      listScrapeTargets({ status, limit = 50 } = {}) {
+        const where = status ? `WHERE status = ?` : ``;
+        const args = status ? [status, limit] : [limit];
+        return connection.prepare(`SELECT * FROM pa_li_scrape_targets ${where} ORDER BY priority DESC, created_at ASC LIMIT ?`).all(...args);
+      },
+      upsertScrapeTarget(t) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_li_scrape_targets WHERE id = ?`).get(t.id);
+        const row = { id: t.id, linkedin_account_id: t.linkedinAccountId || t.linkedin_account_id || null, profile_url: t.profileUrl || t.profile_url, full_name: t.fullName || t.full_name || '', reason: t.reason || '', status: t.status || 'pending', priority: t.priority || 5, assigned_task_id: t.assignedTaskId || t.assigned_task_id || null, scraped_profile_id: t.scrapedProfileId || t.scraped_profile_id || null, created_at: t.createdAt || t.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_li_scrape_targets SET linkedin_account_id=@linkedin_account_id,profile_url=@profile_url,full_name=@full_name,reason=@reason,status=@status,priority=@priority,assigned_task_id=@assigned_task_id,scraped_profile_id=@scraped_profile_id,updated_at=@updated_at WHERE id=@id`).run(row);
+        } else {
+          connection.prepare(`INSERT INTO pa_li_scrape_targets (id,linkedin_account_id,profile_url,full_name,reason,status,priority,assigned_task_id,scraped_profile_id,created_at,updated_at) VALUES (@id,@linkedin_account_id,@profile_url,@full_name,@reason,@status,@priority,@assigned_task_id,@scraped_profile_id,@created_at,@updated_at)`).run(row);
+        }
+        return connection.prepare(`SELECT * FROM pa_li_scrape_targets WHERE id = ?`).get(row.id);
+      },
+      liOverviewStats() {
+        const totalProfiles = connection.prepare(`SELECT COUNT(*) as count FROM pa_li_scraped_profiles`).get()?.count || 0;
+        const totalSegments = connection.prepare(`SELECT COUNT(*) as count FROM pa_li_segments`).get()?.count || 0;
+        const activeCampaigns = connection.prepare(`SELECT COUNT(*) as count FROM pa_li_outreach_campaigns WHERE status = 'active'`).get()?.count || 0;
+        const outreachSentWeek = connection.prepare(`SELECT COUNT(*) as count FROM pa_li_outreach_queue WHERE status = 'sent' AND sent_at >= date('now','-7 days')`).get()?.count || 0;
+        const outreachReplied = connection.prepare(`SELECT COUNT(*) as count FROM pa_li_outreach_queue WHERE status = 'replied'`).get()?.count || 0;
+        const totalOutreachSent = connection.prepare(`SELECT COUNT(*) as count FROM pa_li_outreach_queue WHERE status IN ('sent','replied','accepted')`).get()?.count || 0;
+        const replyRate = totalOutreachSent > 0 ? Math.round((outreachReplied / totalOutreachSent) * 100) : 0;
+        const pendingTargets = connection.prepare(`SELECT COUNT(*) as count FROM pa_li_scrape_targets WHERE status = 'pending'`).get()?.count || 0;
+        const cityCounts = connection.prepare(`SELECT city, COUNT(*) as count FROM pa_li_scraped_profiles WHERE city != '' GROUP BY city ORDER BY count DESC LIMIT 10`).all();
+        const recentRuns = connection.prepare(`SELECT r.*, t.name as task_name FROM pa_li_automation_runs r LEFT JOIN pa_li_automation_tasks t ON t.id = r.task_id ORDER BY r.started_at DESC LIMIT 5`).all().map(r => ({ ...r, result: JSON.parse(r.result) }));
+        const weeklyOutreach = connection.prepare(`SELECT date(sent_at) as day, COUNT(*) as count FROM pa_li_outreach_queue WHERE status IN ('sent','replied','accepted') AND sent_at >= date('now','-30 days') GROUP BY day ORDER BY day ASC`).all();
+        return { totalProfiles, totalSegments, activeCampaigns, outreachSentWeek, outreachReplied, totalOutreachSent, replyRate, pendingTargets, cityCounts, recentRuns, weeklyOutreach };
       },
     },
     close() {
