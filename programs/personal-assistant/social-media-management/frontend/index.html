@@ -74,7 +74,7 @@
     .platform-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; flex-shrink: 0; }
     .platform-twitter { background: #EFF6FF; color: #1D4ED8; }
     .platform-instagram { background: #FDF2F8; color: #9D174D; }
-    .platform-linkedin { background: #F0FDFA; color: #0F766E; }
+    .platform-linkedin { background: #EBF5FB; color: #0A66C2; }
     .platform-facebook { background: #EFF6FF; color: #1E3A5F; }
 
     .content-body { font-size: 13.5px; color: var(--text-primary); line-height: 1.55; flex: 1; word-break: break-word; }
@@ -117,6 +117,24 @@
 
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text-primary); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 500; z-index: 200; box-shadow: 0 6px 24px rgba(0,0,0,0.15); transform: translateY(80px); opacity: 0; transition: all 0.25s; }
     .toast.show { transform: translateY(0); opacity: 1; }
+
+    .section-heading { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 0; display: flex; align-items: center; gap: 8px; }
+    .section-heading .li-icon { width: 18px; height: 18px; flex-shrink: 0; color: #0A66C2; }
+
+    .linkedin-panel { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .linkedin-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #F8FBFF; }
+    .linkedin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .linkedin-table th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; background: #FAFBFC; border-bottom: 1px solid var(--border); }
+    .linkedin-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
+    .linkedin-table tr:last-child td { border-bottom: none; }
+    .linkedin-table tr:hover td { background: #F8FBFF; }
+    .profile-link { color: #0A66C2; text-decoration: none; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+    .profile-link:hover { text-decoration: underline; }
+    .li-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .li-status-active { background: #DCFCE7; color: #16A34A; }
+    .li-status-paused { background: #FEF3C7; color: #D97706; }
+    .li-status-disconnected { background: #FEF2F2; color: #DC2626; }
+    .li-empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px; }
   </style>
 </head>
 <body>
@@ -181,6 +199,22 @@
       </div>
     </div>
 
+    <div class="linkedin-panel">
+      <div class="linkedin-panel-header">
+        <div class="section-heading">
+          <svg class="li-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          LinkedIn Accounts
+        </div>
+        <button class="btn btn-primary" id="add-li-account-btn" style="padding:7px 14px;font-size:12.5px;">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add account
+        </button>
+      </div>
+      <div id="li-accounts-body">
+        <div class="li-empty">Loading accounts...</div>
+      </div>
+    </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div class="filter-tabs">
         <button class="tab active" data-filter="all">All</button>
@@ -196,6 +230,48 @@
     </div>
   </div>
 </main>
+
+<div class="modal-backdrop" id="li-account-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="li-modal-title">
+    <div class="modal-header">
+      <span class="modal-title" id="li-modal-title">Add LinkedIn Account</span>
+      <button class="modal-close" id="li-modal-close-btn" aria-label="Close">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="li-modal-account-id" value="" />
+      <div class="form-group">
+        <label class="form-label" for="li-field-label">Label</label>
+        <input class="form-input" id="li-field-label" type="text" placeholder="e.g. Kim — Personal" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="li-field-display-name">Display Name</label>
+        <input class="form-input" id="li-field-display-name" type="text" placeholder="e.g. Kim Like" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="li-field-profile-url">Profile URL</label>
+        <input class="form-input" id="li-field-profile-url" type="url" placeholder="https://www.linkedin.com/in/username/" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="li-field-status">Status</label>
+        <select class="form-select" id="li-field-status">
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="disconnected">Disconnected</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="li-field-notes">Notes</label>
+        <textarea class="form-textarea" id="li-field-notes" placeholder="Optional notes about this account..." style="min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="li-modal-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="li-modal-save-btn">Save Account</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop" id="post-modal">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -254,6 +330,9 @@
   let allPosts = [];
   let activeFilter = 'all';
   let editingId = null;
+
+  let allLiAccounts = [];
+  let editingLiId = null;
 
   function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -321,6 +400,108 @@
         </div>
       </div>`;
     }).join('');
+  }
+
+  function renderLiAccounts() {
+    const body = document.getElementById('li-accounts-body');
+    if (allLiAccounts.length === 0) {
+      body.innerHTML = `<div class="li-empty">No LinkedIn accounts configured. Add one to get started.</div>`;
+      return;
+    }
+    const statusCls = { active: 'li-status-active', paused: 'li-status-paused', disconnected: 'li-status-disconnected' };
+    body.innerHTML = `<table class="linkedin-table">
+      <thead><tr>
+        <th>Label</th><th>Display Name</th><th>Profile URL</th><th>Status</th><th>Notes</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${allLiAccounts.map(a => `<tr>
+          <td style="font-weight:600;">${escHtml(a.label)}</td>
+          <td>${escHtml(a.display_name || '')}</td>
+          <td><a class="profile-link" href="${escHtml(a.profile_url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.profile_url)}</a></td>
+          <td><span class="li-status ${statusCls[a.status] || 'li-status-active'}">${escHtml(a.status)}</span></td>
+          <td style="color:var(--text-muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(a.notes || '')}</td>
+          <td style="white-space:nowrap;">
+            <button class="act-btn" data-li-id="${a.id}" data-li-action="edit" style="margin-right:4px;">Edit</button>
+            <button class="act-btn act-btn-danger" data-li-id="${a.id}" data-li-action="delete">Delete</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  async function loadLiAccounts() {
+    try {
+      const res = await fetch('/api/pa/social/linkedin/accounts');
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      allLiAccounts = d.entries || [];
+    } catch(e) {
+      allLiAccounts = [];
+    }
+    renderLiAccounts();
+  }
+
+  function openLiModal(acct) {
+    editingLiId = acct ? acct.id : null;
+    document.getElementById('li-modal-title').textContent = acct ? 'Edit LinkedIn Account' : 'Add LinkedIn Account';
+    document.getElementById('li-modal-account-id').value = acct ? acct.id : '';
+    document.getElementById('li-field-label').value = acct ? (acct.label || '') : '';
+    document.getElementById('li-field-display-name').value = acct ? (acct.display_name || '') : '';
+    document.getElementById('li-field-profile-url').value = acct ? (acct.profile_url || '') : '';
+    document.getElementById('li-field-status').value = acct ? (acct.status || 'active') : 'active';
+    document.getElementById('li-field-notes').value = acct ? (acct.notes || '') : '';
+    document.getElementById('li-modal-save-btn').textContent = acct ? 'Save Changes' : 'Save Account';
+    document.getElementById('li-account-modal').classList.add('open');
+    document.getElementById('li-field-label').focus();
+  }
+
+  function closeLiModal() {
+    document.getElementById('li-account-modal').classList.remove('open');
+    editingLiId = null;
+  }
+
+  async function saveLiAccount() {
+    const label = document.getElementById('li-field-label').value.trim();
+    if (!label) { document.getElementById('li-field-label').focus(); showToast('Label is required.'); return; }
+    const profileUrl = document.getElementById('li-field-profile-url').value.trim();
+    if (!profileUrl) { document.getElementById('li-field-profile-url').focus(); showToast('Profile URL is required.'); return; }
+    const payload = {
+      label,
+      displayName: document.getElementById('li-field-display-name').value.trim(),
+      profileUrl,
+      status: document.getElementById('li-field-status').value,
+      notes: document.getElementById('li-field-notes').value.trim(),
+    };
+    try {
+      let res, data;
+      if (editingLiId) {
+        res = await fetch(`/api/pa/social/linkedin/accounts/${editingLiId}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error();
+        const j = await res.json();
+        data = j.account || j;
+        allLiAccounts = allLiAccounts.map(a => a.id === editingLiId ? data : a);
+      } else {
+        res = await fetch('/api/pa/social/linkedin/accounts', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error();
+        const j = await res.json();
+        data = j.account || j;
+        allLiAccounts.unshift(data);
+      }
+      renderLiAccounts();
+      closeLiModal();
+      showToast(editingLiId ? 'Account updated.' : 'Account added.');
+    } catch(e) { showToast('Failed to save account.'); }
+  }
+
+  async function deleteLiAccount(id) {
+    if (!confirm('Remove this LinkedIn account?')) return;
+    try {
+      const res = await fetch(`/api/pa/social/linkedin/accounts/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      allLiAccounts = allLiAccounts.filter(a => a.id !== id);
+      renderLiAccounts();
+      showToast('Account removed.');
+    } catch(e) { showToast('Failed to remove account.'); }
   }
 
   async function loadPosts() {
@@ -421,8 +602,25 @@
   document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
   document.getElementById('modal-save-btn').addEventListener('click', savePost);
   document.getElementById('post-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+  document.getElementById('add-li-account-btn').addEventListener('click', () => openLiModal(null));
+  document.getElementById('li-modal-close-btn').addEventListener('click', closeLiModal);
+  document.getElementById('li-modal-cancel-btn').addEventListener('click', closeLiModal);
+  document.getElementById('li-modal-save-btn').addEventListener('click', saveLiAccount);
+  document.getElementById('li-account-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeLiModal(); });
+
+  document.getElementById('li-accounts-body').addEventListener('click', e => {
+    const btn = e.target.closest('[data-li-action]');
+    if (!btn) return;
+    const id = btn.dataset.liId;
+    const acct = allLiAccounts.find(a => String(a.id) === String(id));
+    if (btn.dataset.liAction === 'edit') openLiModal(acct);
+    else if (btn.dataset.liAction === 'delete') deleteLiAccount(id);
+  });
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeLiModal(); } });
+
+  loadLiAccounts();
   loadPosts();
 </script>
 </body>

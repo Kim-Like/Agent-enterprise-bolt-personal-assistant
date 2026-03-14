@@ -244,6 +244,48 @@ export async function paRoutes(app) {
     return reply.code(204).send();
   });
 
+  app.get("/api/pa/social/linkedin/accounts", async () => {
+    const accounts = db.pa.listLinkedInAccounts();
+    return { total: accounts.length, entries: accounts };
+  });
+
+  app.post("/api/pa/social/linkedin/accounts", async (request, reply) => {
+    const body = request.body || {};
+    if (!body.label) return reply.code(400).send({ error: "label is required" });
+    if (!body.profileUrl) return reply.code(400).send({ error: "profileUrl is required" });
+    const account = db.pa.upsertLinkedInAccount({
+      id: randomUUID(),
+      label: body.label,
+      profileUrl: body.profileUrl,
+      displayName: body.displayName || "",
+      status: body.status || "active",
+      notes: body.notes || "",
+    });
+    return reply.code(201).send({ account });
+  });
+
+  app.patch("/api/pa/social/linkedin/accounts/:accountId", async (request, reply) => {
+    const existing = db.pa.getLinkedInAccount(request.params.accountId);
+    if (!existing) return reply.code(404).send({ error: "Account not found" });
+    const b = request.body || {};
+    const account = db.pa.upsertLinkedInAccount({
+      ...existing,
+      label: b.label ?? existing.label,
+      profileUrl: b.profileUrl ?? existing.profile_url,
+      displayName: b.displayName ?? existing.display_name,
+      status: b.status ?? existing.status,
+      notes: b.notes ?? existing.notes,
+      id: existing.id,
+    });
+    return { account };
+  });
+
+  app.delete("/api/pa/social/linkedin/accounts/:accountId", async (request, reply) => {
+    if (!db.pa.getLinkedInAccount(request.params.accountId)) return reply.code(404).send({ error: "Account not found" });
+    db.pa.deleteLinkedInAccount(request.params.accountId);
+    return reply.code(204).send();
+  });
+
   app.get("/api/pa/fitness/logs", async (request) => {
     const { limit, activityType } = request.query;
     const logs = db.pa.listFitnessLogs({ limit: limit ? Number(limit) : 50, activityType });

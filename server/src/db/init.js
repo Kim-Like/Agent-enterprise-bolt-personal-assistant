@@ -97,6 +97,17 @@ CREATE TABLE IF NOT EXISTS pa_social_drafts (
 CREATE INDEX IF NOT EXISTS idx_pa_social_drafts_status_scheduled_for
   ON pa_social_drafts (status, scheduled_for ASC);
 
+CREATE TABLE IF NOT EXISTS pa_linkedin_accounts (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  profile_url TEXT NOT NULL,
+  display_name TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active',
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS pa_fitness_logs (
   id TEXT PRIMARY KEY,
   activity_type TEXT NOT NULL,
@@ -1239,6 +1250,26 @@ export function initControlPlaneDb(env) {
       },
       deleteSocialDraft(id) {
         connection.prepare(`DELETE FROM pa_social_drafts WHERE id = ?`).run(id);
+      },
+      listLinkedInAccounts() {
+        return connection.prepare(`SELECT * FROM pa_linkedin_accounts ORDER BY created_at DESC`).all();
+      },
+      getLinkedInAccount(id) {
+        return connection.prepare(`SELECT * FROM pa_linkedin_accounts WHERE id = ?`).get(id) || null;
+      },
+      upsertLinkedInAccount(acct) {
+        const now = nowIso();
+        const exists = connection.prepare(`SELECT id FROM pa_linkedin_accounts WHERE id = ?`).get(acct.id);
+        const p = { id: acct.id, label: acct.label, profile_url: acct.profileUrl || acct.profile_url, display_name: acct.displayName || acct.display_name || '', status: acct.status || 'active', notes: acct.notes || '', created_at: acct.createdAt || acct.created_at || now, updated_at: now };
+        if (exists) {
+          connection.prepare(`UPDATE pa_linkedin_accounts SET label=@label,profile_url=@profile_url,display_name=@display_name,status=@status,notes=@notes,updated_at=@updated_at WHERE id=@id`).run(p);
+        } else {
+          connection.prepare(`INSERT INTO pa_linkedin_accounts (id,label,profile_url,display_name,status,notes,created_at,updated_at) VALUES (@id,@label,@profile_url,@display_name,@status,@notes,@created_at,@updated_at)`).run(p);
+        }
+        return db.pa.getLinkedInAccount(acct.id);
+      },
+      deleteLinkedInAccount(id) {
+        connection.prepare(`DELETE FROM pa_linkedin_accounts WHERE id = ?`).run(id);
       },
       listFitnessLogs({ limit = 50, activityType } = {}) {
         const where = activityType ? `WHERE activity_type = ?` : ``;
