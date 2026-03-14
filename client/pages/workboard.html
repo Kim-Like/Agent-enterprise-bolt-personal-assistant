@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Program Workboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas: #fffaf0;
+      --surface: #ffffff;
+      --shell: #422006;
+      --border: #fed7aa;
+      --text: #431407;
+      --muted: #9a3412;
+      --active: #16a34a;
+      --remote: #2563eb;
+      --hold: #b45309;
+      --stub: #7c3aed;
+      --font-ui: "Plus Jakarta Sans", sans-serif;
+      --font-data: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(251, 146, 60, 0.16), transparent 25%),
+        linear-gradient(180deg, #fff7ed 0%, #fffaf0 100%);
+    }
+
+    header,
+    main {
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: -0.04em;
+    }
+
+    nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.85);
+      font-weight: 600;
+    }
+
+    .board {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      align-items: start;
+    }
+
+    .column {
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border);
+      box-shadow: 0 16px 40px rgba(124, 45, 18, 0.08);
+      overflow: hidden;
+    }
+
+    .column-head {
+      padding: 16px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .column-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .count {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-family: var(--font-data);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .column[data-kind="active"] .column-title { color: var(--active); }
+    .column[data-kind="remote"] .column-title { color: var(--remote); }
+    .column[data-kind="hold"] .column-title { color: var(--hold); }
+    .column[data-kind="stub"] .column-title { color: var(--stub); }
+
+    .card-list {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .program-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      background: white;
+    }
+
+    .program-card strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .program-card p {
+      margin: 0 0 8px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .program-meta {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--font-data);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="program-meta">Phase 1 program map</div>
+      <h1>Program workboard</h1>
+    </div>
+    <nav>
+      <a href="/">Control Plane</a>
+      <a href="/03-program-visualisation.html">Canonical program view</a>
+      <a href="/chat">Chat prototype</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="board" id="workboard">
+      <article class="column" data-kind="active">
+        <div class="column-head">
+          <span class="column-title">Active</span>
+          <span class="count" id="count-active">0</span>
+        </div>
+        <div class="card-list" id="active-list"></div>
+      </article>
+      <article class="column" data-kind="remote">
+        <div class="column-head">
+          <span class="column-title">Remote</span>
+          <span class="count" id="count-remote">0</span>
+        </div>
+        <div class="card-list" id="remote-list"></div>
+      </article>
+      <article class="column" data-kind="hold">
+        <div class="column-head">
+          <span class="column-title">Hold</span>
+          <span class="count" id="count-hold">0</span>
+        </div>
+        <div class="card-list" id="hold-list"></div>
+      </article>
+      <article class="column" data-kind="stub">
+        <div class="column-head">
+          <span class="column-title">Stub</span>
+          <span class="count" id="count-stub">0</span>
+        </div>
+        <div class="card-list" id="stub-list"></div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    function renderPrograms(container, programs) {
+      container.innerHTML = programs.map((program) => `
+        <article class="program-card">
+          <strong>${program.name}</strong>
+          <p>${program.purpose}</p>
+          <div class="program-meta">${program.runtime} · ${program.sourcePath}</div>
+        </article>
+      `).join("");
+    }
+
+    fetch("/api/programs")
+      .then((response) => response.json())
+      .then((payload) => {
+        const groups = payload.entries.reduce((collection, entry) => {
+          const key = entry.classification;
+          collection[key] = collection[key] || [];
+          collection[key].push(entry);
+          return collection;
+        }, {});
+
+        for (const key of ["active", "remote", "hold", "stub"]) {
+          document.getElementById(`count-${key}`).textContent = groups[key] ? groups[key].length : 0;
+          renderPrograms(document.getElementById(`${key}-list`), groups[key] || []);
+        }
+      })
+      .catch((error) => {
+        document.getElementById("workboard").innerHTML = `<p>${error.message}</p>`;
+      });
+  </script>
+</body>
+</html>

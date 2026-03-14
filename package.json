@@ -1,0 +1,35 @@
+{
+  "name": "agent-enterprise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Single-process control plane for the Agent Enterprise rebuild",
+  "type": "module",
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "node --watch server/src/index.js",
+    "start:lavpris-public-ingress": "node server/src/lavpris-public-ingress.js",
+    "test": "node --test tests/server/personal-assistant-baseline.test.js",
+    "lavpris:preflight": "bash scripts/lavpris/ssh_preflight.sh",
+    "lavpris:inventory": "bash scripts/lavpris/ssh_inventory.sh",
+    "lavpris:health": "bash scripts/lavpris/ssh_health.sh",
+    "lavpris:provision-client": "node scripts/lavpris/provision-client-agent.mjs",
+    "lavpris:repo-status": "bash scripts/lavpris/ssh_repo_status.sh",
+    "lavpris:mirror-pull": "bash scripts/lavpris/local_mirror_pull.sh",
+    "lavpris:sync-status": "bash scripts/lavpris/sync_status.sh",
+    "lavpris:path-health": "node scripts/lavpris/path_health.mjs",
+    "lavpris:rollout-status": "node scripts/lavpris/rollout_status.mjs",
+    "lavpris:release-health": "node scripts/lavpris/release_health.mjs",
+    "theartis:preflight": "bash scripts/theartis/ssh_preflight.sh",
+    "theartis:inventory": "bash scripts/theartis/ssh_inventory.sh",
+    "theartis:health": "bash scripts/theartis/ssh_health.sh",
+    "theartis:repo-status": "bash scripts/theartis/ssh_repo_status.sh",
+    "theartis:write-access": "bash scripts/theartis/ssh_write_access.sh"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "fastify": "^5.2.1"
+  }
+}

@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-12T00:00:00.000Z",
+  "sourceRoot": "programs",
+  "classificationPolicy": {
+    "active": "Real program context or module worth surfacing in the dashboard now.",
+    "remote": "Lives primarily in a remote estate or external surface.",
+    "hold": "Brownfield or heavy stack intentionally kept dormant during Phase 1.",
+    "stub": "Placeholder scaffold without execution value yet."
+  },
+  "entries": [
+    {
+      "id": "ian-agency",
+      "name": "ian-agency",
+      "classification": "active",
+      "purpose": "Portfolio governance program root and context holder.",
+      "runtime": "registry-only",
+      "triggers": ["manual operator review"],
+      "integrations": [],
+      "sourcePath": "programs/ian-agency",
+      "notes": "Useful to expose even without a runtime."
+    },
+    {
+      "id": "samlino-seo-agent-playground",
+      "name": "seo-agent-playground",
+      "classification": "hold",
+      "purpose": "Brownfield Samlino workspace and UI experiment stack.",
+      "runtime": "isolated vite hold",
+      "triggers": ["manual operator launch"],
+      "integrations": ["Supabase", "Claude CLI"],
+      "sourcePath": "programs/ian-agency/contexts/samlino/seo-agent-playground",
+      "notes": "Too heavy for Phase 1 boot and must stay isolated."
+    },
+    {
+      "id": "artisan-reporting",
+      "name": "reporting.theartisan.dk",
+      "classification": "active",
+      "purpose": "Billy-backed reporting dashboard for Artisan.",
+      "runtime": "local node http",
+      "triggers": ["manual dashboard access", "scheduled sync"],
+      "integrations": ["Billy API", "MySQL"],
+      "sourcePath": "programs/artisan/reporting.theartisan.dk",
+      "mergeCandidate": true,
+      "notes": "Should converge with Baltzer reporting into one tenant-aware module."
+    },
+    {
+      "id": "artisan-wordpress",
+      "name": "the-artisan-wp",
+      "classification": "remote",
+      "purpose": "Remote WordPress and WooCommerce surface for Artisan.",
+      "runtime": "remote wordpress surface",
+      "triggers": ["operator action", "remote webhook"],
+      "integrations": ["WordPress", "cPanel", "MySQL"],
+      "sourcePath": "programs/artisan/the-artisan-wp",
+      "notes": "Should not be booted as part of the local control plane."
+    },
+    {
+      "id": "artisan-email-marketing",
+      "name": "e-mail-marketing",
+      "classification": "stub",
+      "purpose": "Placeholder for future email marketing work.",
+      "runtime": "not implemented",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/artisan/e-mail-marketing",
+      "notes": "Empty scaffold only."
+    },
+    {
+      "id": "baltzer-reporting",
+      "name": "reporting.baltzergames.dk",
+      "classification": "active",
+      "purpose": "Billy-backed reporting dashboard for Baltzer.",
+      "runtime": "local node http",
+      "triggers": ["manual dashboard access", "scheduled sync"],
+      "integrations": ["Billy API"],
+      "sourcePath": "programs/baltzer/reporting.baltzergames.dk",
+      "mergeCandidate": true,
+      "notes": "Near-duplicate of Artisan reporting."
+    },
+    {
+      "id": "baltzer-tcg-index",
+      "name": "TCG-index",
+      "classification": "hold",
+      "purpose": "Pricing tracker and scraper hold for card market data.",
+      "runtime": "dormant scrape stack",
+      "triggers": ["manual operator launch", "scheduled scrape"],
+      "integrations": ["Supabase", "Cardmarket", "TCGPlayer", "proxy providers"],
+      "sourcePath": "programs/baltzer/TCG-index",
+      "notes": "Heavy frontend plus scraping stack stays dormant in Phase 1."
+    },
+    {
+      "id": "baltzer-shopify",
+      "name": "shopify",
+      "classification": "stub",
+      "purpose": "Placeholder for future Shopify module wiring.",
+      "runtime": "not implemented",
+      "triggers": [],
+      "integrations": ["Shopify"],
+      "sourcePath": "programs/baltzer/shopify",
+      "notes": "Folder exists without runtime contract."
+    },
+    {
+      "id": "baltzer-employee-schedule-salary-api",
+      "name": "employee-schedule-salary-api",
+      "classification": "stub",
+      "purpose": "Placeholder workforce and salary API module.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/baltzer/employee-schedule-salary-api",
+      "notes": "Defer until the operations model is defined."
+    },
+    {
+      "id": "baltzer-event-management-platform",
+      "name": "event-management-platform",
+      "classification": "stub",
+      "purpose": "Placeholder events platform module.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/baltzer/event-management-platform",
+      "notes": "No active implementation yet."
+    },
+    {
+      "id": "baltzer-social-media-management",
+      "name": "social-media-management",
+      "classification": "stub",
+      "purpose": "Placeholder social management module for Baltzer.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/baltzer/social-media-management",
+      "notes": "Scaffold only."
+    },
+    {
+      "id": "lavprishjemmeside-root",
+      "name": "lavprishjemmeside",
+      "classification": "remote",
+      "purpose": "Remote-first program manifest for Lavprishjemmeside estates.",
+      "runtime": "remote portfolio manifest",
+      "triggers": ["manual operator review"],
+      "integrations": ["GitHub", "Bolt.new", "cPanel", "MySQL", "remote repos"],
+      "sourcePath": "programs/lavprishjemmeside",
+      "notes": "Manifest only. GitHub is the shared sync surface with Bolt.new, while cPanel remains the live deployment target."
+    },
+    {
+      "id": "lavprishjemmeside-cms",
+      "name": "cms",
+      "classification": "remote",
+      "purpose": "Remote CMS authority for Lavprishjemmeside sites.",
+      "runtime": "remote cms surface",
+      "triggers": ["operator action"],
+      "integrations": ["GitHub", "Bolt.new", "cPanel", "MySQL", "CMS APIs"],
+      "sourcePath": "programs/lavprishjemmeside/cms",
+      "notes": "GitHub should stay in sync with Bolt.new before Agent Enterprise deploys the cPanel mirror."
+    },
+    {
+      "id": "lavprishjemmeside-site-main",
+      "name": "lavprishjemmeside.dk",
+      "classification": "remote",
+      "purpose": "Primary remote client site under Lavprishjemmeside governance.",
+      "runtime": "remote client site",
+      "triggers": ["operator review"],
+      "integrations": ["GitHub", "Bolt.new", "remote repo", "site APIs"],
+      "sourcePath": "programs/lavprishjemmeside/client-sites/lavprishjemmeside.dk",
+      "notes": "Live site runs on cPanel, but repo sync should flow through GitHub."
+    },
+    {
+      "id": "lavprishjemmeside-site-ljdesignstudio",
+      "name": "ljdesignstudio.dk",
+      "classification": "remote",
+      "purpose": "Secondary remote client site under Lavprishjemmeside governance.",
+      "runtime": "remote client site",
+      "triggers": ["operator review"],
+      "integrations": ["GitHub", "remote repo", "site APIs"],
+      "sourcePath": "programs/lavprishjemmeside/client-sites/ljdesignstudio.dk",
+      "notes": "Remote site artifact only."
+    },
+    {
+      "id": "personal-assistant-root",
+      "name": "personal-assistant",
+      "classification": "active",
+      "purpose": "Personal ops suite manifest and inventory root.",
+      "runtime": "registry-only",
+      "triggers": ["manual operator review"],
+      "integrations": [],
+      "sourcePath": "programs/personal-assistant",
+      "notes": "Useful for registry visibility even before modules are live."
+    },
+    {
+      "id": "personal-assistant-task-manager",
+      "name": "task-manager",
+      "classification": "stub",
+      "purpose": "Placeholder task management module.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/personal-assistant/task-manager",
+      "notes": "No runtime contract yet."
+    },
+    {
+      "id": "personal-assistant-calendar-management",
+      "name": "calendar-management",
+      "classification": "stub",
+      "purpose": "Placeholder calendar management module.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/personal-assistant/calendar-management",
+      "notes": "Scaffold only."
+    },
+    {
+      "id": "personal-assistant-email-management",
+      "name": "email-management",
+      "classification": "stub",
+      "purpose": "Placeholder email management module.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/personal-assistant/email-management",
+      "notes": "Contains partial assets but no safe runtime boundary yet."
+    },
+    {
+      "id": "personal-assistant-social-media-management",
+      "name": "social-media-management",
+      "classification": "stub",
+      "purpose": "Placeholder social media management module.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/personal-assistant/social-media-management",
+      "notes": "Scaffold only."
+    },
+    {
+      "id": "personal-assistant-fitness-dashboard",
+      "name": "fitness-dashboard",
+      "classification": "stub",
+      "purpose": "Placeholder fitness dashboard module.",
+      "runtime": "placeholder scaffold",
+      "triggers": [],
+      "integrations": [],
+      "sourcePath": "programs/personal-assistant/fitness-dashboard",
+      "notes": "Keep dormant until the data model exists."
+    }
+  ]
+}

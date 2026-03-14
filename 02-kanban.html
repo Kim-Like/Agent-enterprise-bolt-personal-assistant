@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workboard - Agent Enterprise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --canvas: #F8FAFC;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --shell: #0F172A;
+    --text: #0F172A;
+    --muted: #64748B;
+    --subtle: #94A3B8;
+    --cta: #16A34A;
+    --danger: #DC2626;
+    --info: #2563EB;
+    --font-ui: "Plus Jakarta Sans", sans-serif;
+    --font-data: "JetBrains Mono", monospace;
+  }
+
+  html, body { height: 100%; background: var(--canvas); color: var(--text); font-family: var(--font-ui); }
+  body { overflow: hidden; }
+
+  .app { display: flex; height: 100vh; }
+
+  .nav-rail {
+    width: 56px;
+    background: var(--shell);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+    border-right: 1px solid var(--border);
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow-y: auto;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--info);
+  }
+
+  .sidebar h1 {
+    font-size: 24px;
+    line-height: 1.1;
+    margin-top: 6px;
+  }
+
+  .sidebar-copy {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  }
+
+  .panel h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .panel ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .stage-legend {
+    display: grid;
+    gap: 8px;
+  }
+
+  .stage-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .stage-chip-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--dot);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--dot) 18%, white);
+  }
+
+  .main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .topbar h2 {
+    font-size: 28px;
+    line-height: 1.1;
+    margin-top: 6px;
+  }
+
+  .topbar-copy {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 8px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 10px;
+    min-width: 280px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 14px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    margin-top: 8px;
+  }
+
+  .board-shell {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 18px 18px;
+    gap: 14px;
+  }
+
+  .board-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 8px;
+  }
+
+  .board-head strong {
+    font-size: 16px;
+    display: block;
+  }
+
+  .board-head span {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 4px;
+    display: block;
+  }
+
+  .board-note {
+    color: var(--muted);
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 12px;
+  }
+
+  .board-error {
+    color: var(--danger);
+    font-size: 13px;
+    padding: 0 8px;
+  }
+
+  .board-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(280px, 1fr));
+    gap: 14px;
+    min-width: 1460px;
+    height: 100%;
+  }
+
+  .column {
+    background: var(--column-bg);
+    border: 1px solid var(--column-border);
+    border-radius: 22px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+
+  .column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .column-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .column-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--column-accent);
+  }
+
+  .column-title {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .column-count {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid color-mix(in srgb, var(--column-accent) 20%, white);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .column-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .column-empty {
+    border: 1px dashed color-mix(in srgb, var(--column-accent) 28%, white);
+    border-radius: 18px;
+    padding: 18px 14px;
+    color: var(--muted);
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .task-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+    transition: transform 140ms ease, box-shadow 140ms ease;
+  }
+
+  .task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  .task-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .task-summary {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+
+  .task-badges {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .task-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--info);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .task-badge-warning {
+    background: rgba(220, 38, 38, 0.08);
+    color: var(--danger);
+  }
+
+  .task-meta {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .task-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .task-meta dt {
+    color: var(--subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .task-meta dd {
+    color: var(--text);
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .task-footer {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .task-stamp {
+    color: var(--subtle);
+    font-family: var(--font-data);
+  }
+
+  .task-link {
+    color: var(--info);
+    font-weight: 700;
+  }
+
+  @media (max-width: 1200px) {
+    .sidebar { display: none; }
+    .stat-grid { min-width: 220px; }
+  }
+
+  @media (max-width: 900px) {
+    .topbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav-rail" data-dashboard-rail></nav>
+
+  <aside class="sidebar">
+    <div>
+      <div class="eyebrow">Engineer delivery lane</div>
+      <h1>Workboard</h1>
+      <p class="sidebar-copy">
+        All engineering work lands here. Accepted items are operator-reviewed, and only
+        engineer moves work across delivery stages.
+      </p>
+    </div>
+
+    <section class="panel">
+      <h2>Workflow contract</h2>
+      <ul>
+        <li>Non-engineer agents can request engineering work.</li>
+        <li>User review happens in the Accepted lane.</li>
+        <li>Approving creates the engineer thread and queues planning.</li>
+        <li>Stage changes after that are engineer-only.</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>Stages</h2>
+      <div class="stage-legend">
+        <div class="stage-chip" style="--dot:#F97316"><span class="stage-chip-dot"></span><span>Accepted</span></div>
+        <div class="stage-chip" style="--dot:#3B82F6"><span class="stage-chip-dot"></span><span>Planned</span></div>
+        <div class="stage-chip" style="--dot:#8B5CF6"><span class="stage-chip-dot"></span><span>In development</span></div>
+        <div class="stage-chip" style="--dot:#F59E0B"><span class="stage-chip-dot"></span><span>Testing</span></div>
+        <div class="stage-chip" style="--dot:#16A34A"><span class="stage-chip-dot"></span><span>Completed</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Usage note</h2>
+      <ul>
+        <li>Open any card to inspect the working thread in Agent Chat.</li>
+        <li>Approval and rejection happen from the Accepted review thread.</li>
+        <li>The board listens to the shared work event stream for updates.</li>
+      </ul>
+    </section>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Task-linked Kanban</div>
+        <h2>Workboard</h2>
+        <p class="topbar-copy">
+          Live engineering intake from the control plane, grouped into the only five
+          board stages that matter.
+        </p>
+      </div>
+
+      <div class="stat-grid">
+        <article class="stat-card">
+          <div id="kanbanTotal" class="stat-value">0</div>
+          <div class="stat-label">Active tasks</div>
+        </article>
+        <article class="stat-card">
+          <div id="kanbanPending" class="stat-value">0</div>
+          <div class="stat-label">Pending approval</div>
+        </article>
+        <article class="stat-card">
+          <div id="kanbanQueued" class="stat-value">0</div>
+          <div class="stat-label">Queued for engineer</div>
+        </article>
+        <article class="stat-card">
+          <div id="kanbanCompleted" class="stat-value">0</div>
+          <div class="stat-label">Completed</div>
+        </article>
+      </div>
+    </header>
+
+    <section class="board-shell">
+      <div class="board-head">
+        <div>
+          <strong>Accepted through Completed</strong>
+          <span id="kanbanMeta">Loading live board data...</span>
+        </div>
+        <div class="board-note">Only engineer can advance stages after review. Accepted cards can carry specialty skills into planning.</div>
+      </div>
+
+      <p id="kanbanError" class="board-error" hidden></p>
+
+      <div class="board-scroll">
+        <div id="kanbanBoard" class="board"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="module" src="/assets/dashboard-rail.js"></script>
+<script type="module" src="/assets/kanban.js"></script>
+</body>
+</html>

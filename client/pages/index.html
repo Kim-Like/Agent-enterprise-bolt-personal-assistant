@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Enterprise Control Plane</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas: #f8fafc;
+      --surface: #ffffff;
+      --shell: #0f172a;
+      --shell-soft: #1e293b;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --success: #16a34a;
+      --warn: #d97706;
+      --font-ui: "Plus Jakarta Sans", sans-serif;
+      --font-data: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 88px 1fr;
+    }
+
+    .rail {
+      background: var(--shell);
+      padding: 24px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .rail-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+    }
+
+    .rail-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    main {
+      padding: 28px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .hero,
+    .panel {
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 24px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+    }
+
+    .hero {
+      padding: 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(37, 99, 235, 0.1);
+      width: fit-content;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 840px;
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .stat-grid,
+    .panel-grid,
+    .page-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .stat-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .stat-card,
+    .panel-card,
+    .page-card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      background: white;
+    }
+
+    .stat-label,
+    .panel-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      margin-top: 10px;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .stat-subtle,
+    .panel-copy,
+    .page-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .panel {
+      padding: 24px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .panel-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .command {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--shell);
+      color: #e2e8f0;
+      font-family: var(--font-data);
+      font-size: 13px;
+      overflow-x: auto;
+    }
+
+    .page-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .page-card a {
+      color: inherit;
+      text-decoration: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .page-tag {
+      display: inline-flex;
+      width: fit-content;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--success);
+      background: rgba(22, 163, 74, 0.1);
+    }
+
+    @media (max-width: 760px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail { display: none; }
+      main { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail" aria-hidden="true">
+      <div class="rail-mark">AE</div>
+      <div class="rail-dot"></div>
+      <div class="rail-dot"></div>
+      <div class="rail-dot"></div>
+    </aside>
+    <main>
+      <section class="hero">
+        <div class="eyebrow">Phase 1 Live Control Plane</div>
+        <h1>One runtime. One origin. One operator surface.</h1>
+        <p class="lead">
+          This bootstrap page is served by the same Node process that exposes the inventory
+          APIs, health routes, and canonical dashboard prototypes. The legacy multi-process
+          topology stays off by default.
+        </p>
+        <div class="stat-grid">
+          <article class="stat-card">
+            <div class="stat-label">Runtime</div>
+            <div class="stat-value" id="runtime-mode">Loading</div>
+            <div class="stat-subtle" id="runtime-origin">Resolving origin</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Agents</div>
+            <div class="stat-value" id="agent-count">0</div>
+            <div class="stat-subtle">Registry-only in Phase 1</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Programs</div>
+            <div class="stat-value" id="program-count">0</div>
+            <div class="stat-subtle">Classified before execution wiring</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Startup</div>
+            <div class="stat-value" id="startup-path">Local</div>
+            <div class="stat-subtle">Tailscale-ready through one command</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-label">Operations</div>
+            <h2>Single entry point</h2>
+          </div>
+        </div>
+        <div class="panel-grid">
+          <article class="panel-card">
+            <div class="panel-label">Local start</div>
+            <div class="command" id="local-command">./scripts/start.sh</div>
+            <p class="panel-copy">Boots the server on one Node process with local SQLite state.</p>
+          </article>
+          <article class="panel-card">
+            <div class="panel-label">Tailscale serve</div>
+            <div class="command" id="tailscale-command">./scripts/tailscale-serve.sh</div>
+            <p class="panel-copy">Wraps the same server and exposes it through one Tailscale edge path.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-label">Frontend Contract</div>
+            <h2>Canonical dashboard pages</h2>
+          </div>
+        </div>
+        <div class="page-grid" id="page-grid">
+          <article class="page-card">
+            <a href="/01-agent-overview.html">
+              <span class="page-tag">Prototype</span>
+              <strong>Agent Overview</strong>
+              <span class="page-copy">Existing overview shell preserved as the source frontend contract.</span>
+            </a>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const pageGrid = document.getElementById("page-grid");
+
+    async function loadMeta() {
+      const response = await fetch("/api/meta");
+      if (!response.ok) {
+        throw new Error("Failed to load /api/meta");
+      }
+
+      return response.json();
+    }
+
+    function renderPages(pages) {
+      const cards = pages.map((page) => `
+        <article class="page-card">
+          <a href="${page.route}">
+            <span class="page-tag">${page.source}</span>
+            <strong>${page.title}</strong>
+            <span class="page-copy">${page.route}</span>
+          </a>
+        </article>
+      `);
+
+      pageGrid.innerHTML = cards.join("");
+    }
+
+    loadMeta()
+      .then((meta) => {
+        document.getElementById("runtime-mode").textContent = meta.app.runtime;
+        document.getElementById("runtime-origin").textContent = meta.operations.publicOrigin;
+        document.getElementById("agent-count").textContent = meta.inventory.agents;
+        document.getElementById("program-count").textContent = meta.inventory.programs;
+        document.getElementById("startup-path").textContent = "Local + Tailscale";
+        document.getElementById("local-command").textContent = meta.operations.localStartCommand;
+        document.getElementById("tailscale-command").textContent = meta.operations.tailscaleStartCommand;
+        renderPages(meta.pages);
+      })
+      .catch((error) => {
+        document.getElementById("runtime-mode").textContent = "Unavailable";
+        document.getElementById("runtime-origin").textContent = error.message;
+      });
+  </script>
+</body>
+</html>

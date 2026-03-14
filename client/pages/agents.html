@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Inventory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas: #f8fafc;
+      --surface: #ffffff;
+      --shell: #0f172a;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0f766e;
+      --warn: #b45309;
+      --font-ui: "Plus Jakarta Sans", sans-serif;
+      --font-data: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background: linear-gradient(180deg, #ecfeff 0%, #f8fafc 42%);
+    }
+
+    header {
+      padding: 28px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: -0.04em;
+    }
+
+    nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    main {
+      padding: 0 28px 28px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .summary {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .card,
+    .table-shell {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 20px;
+      box-shadow: 0 14px 50px rgba(15, 23, 42, 0.06);
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .value {
+      margin-top: 10px;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .table-shell {
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #f1f5f9;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    td {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .runtime {
+      font-family: var(--font-data);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .state-enabled,
+    .health-healthy { background: #dcfce7; color: #166534; }
+
+    .state-ready,
+    .health-degraded { background: #dbeafe; color: #1d4ed8; }
+
+    .state-blocked,
+    .health-blocked { background: #ffedd5; color: #c2410c; }
+
+    .state-held,
+    .health-held { background: #fee2e2; color: #b91c1c; }
+
+    .state-disabled,
+    .health-disabled { background: #e2e8f0; color: #475569; }
+
+    .mergeable {
+      color: var(--warn);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    @media (max-width: 900px) {
+      header, main { padding-left: 16px; padding-right: 16px; }
+      .table-shell { overflow-x: auto; }
+      table { min-width: 1180px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="label">Phase 2 Runtime Matrix</div>
+      <h1>Agent inventory</h1>
+    </div>
+    <nav>
+      <a href="/">Control Plane</a>
+      <a href="/01-agent-overview.html">Canonical overview</a>
+      <a href="/workboard">Workboard</a>
+    </nav>
+  </header>
+  <main>
+    <section class="summary">
+      <article class="card">
+        <div class="label">Total agents</div>
+        <div class="value" id="total-agents">0</div>
+        <div class="hint">All copied packets remain visible in one registry.</div>
+      </article>
+      <article class="card">
+        <div class="label">Enabled agents</div>
+        <div class="value" id="enabled-agents">0</div>
+        <div class="hint">Only the first low-risk activation set runs in-process.</div>
+      </article>
+      <article class="card">
+        <div class="label">Healthy agents</div>
+        <div class="value" id="healthy-agents">0</div>
+        <div class="hint">Health checks prove readiness without starting extra runtimes.</div>
+      </article>
+      <article class="card">
+        <div class="label">Held agents</div>
+        <div class="value" id="held-agents">0</div>
+        <div class="hint">Heavy and legacy lanes stay visible but blocked from startup.</div>
+      </article>
+    </section>
+
+    <section class="table-shell">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Kind</th>
+            <th>Enablement</th>
+            <th>Health</th>
+            <th>Runtime</th>
+            <th>Dependencies</th>
+            <th>Flags</th>
+          </tr>
+        </thead>
+        <tbody id="agent-rows">
+          <tr>
+            <td colspan="7">Loading agent inventory...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    function formatNames(values) {
+      return values && values.length > 0 ? values.join(", ") : "None";
+    }
+
+    function formatFlags(entry) {
+      const flags = [];
+
+      if (entry.mergeCandidate) {
+        flags.push("Merge candidate");
+      }
+
+      if (entry.heavyDependencyRisk) {
+        flags.push("Heavy dependency risk");
+      }
+
+      if (entry.policy.hold) {
+        flags.push("Held by policy");
+      }
+
+      return flags.length > 0
+        ? `<span class="mergeable">${flags.join(" · ")}</span>`
+        : "Keep separate";
+    }
+
+    function pillClass(prefix, value) {
+      return `${prefix}-${value || "disabled"}`;
+    }
+
+    async function loadAgents() {
+      const response = await fetch("/api/agents");
+      if (!response.ok) {
+        throw new Error("Failed to load /api/agents");
+      }
+      return response.json();
+    }
+
+    loadAgents()
+      .then((payload) => {
+        document.getElementById("total-agents").textContent = payload.total;
+        document.getElementById("enabled-agents").textContent = payload.counts.enablement.enabled || 0;
+        document.getElementById("healthy-agents").textContent = payload.counts.health.healthy || 0;
+        document.getElementById("held-agents").textContent = payload.counts.enablement.held || 0;
+
+        document.getElementById("agent-rows").innerHTML = payload.entries.map((entry) => `
+          <tr>
+            <td><strong>${entry.name}</strong><br><span class="hint">${entry.sourcePath}</span></td>
+            <td>${entry.kind}</td>
+            <td>
+              <span class="status-pill ${pillClass("state", entry.enablement.state)}">${entry.enablement.state}</span>
+              <div class="hint">${entry.enablement.reason}</div>
+            </td>
+            <td>
+              <span class="status-pill ${pillClass("health", entry.health.status)}">${entry.health.status}</span>
+              <div class="hint">${entry.health.reason}</div>
+            </td>
+            <td>
+              <span class="runtime">${entry.runtime.adapter}</span><br>
+              <span class="hint">${entry.runtime.mode} / ${entry.runtime.invocation}</span>
+            </td>
+            <td class="hint">
+              Agents: ${formatNames(entry.dependencyRefs.agents)}<br>
+              Programs: ${formatNames(entry.dependencyRefs.programs)}<br>
+              Connectors: ${formatNames(entry.dependencyRefs.connectors)}
+            </td>
+            <td>${formatFlags(entry)}</td>
+          </tr>
+        `).join("");
+      })
+      .catch((error) => {
+        document.getElementById("agent-rows").innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
+      });
+  </script>
+</body>
+</html>

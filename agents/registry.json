@@ -1,0 +1,1059 @@
+{
+  "version": 2,
+  "schemaVersion": 2,
+  "generatedAt": "2026-03-12T00:00:00.000Z",
+  "sourceRoot": "agents",
+  "runtimePolicy": {
+    "defaultMode": "function",
+    "defaultAdapter": "registry-only",
+    "defaultInvocation": "none",
+    "executionEnabled": false,
+    "singleProcessOnly": true,
+    "notes": [
+      "Phase 2 upgrades the registry into a runtime-capable model while keeping single-process execution boundaries.",
+      "No agent receives a dedicated long-lived process or hidden worker in the bootstrap phases."
+    ]
+  },
+  "capabilityTemplates": [
+    {
+      "id": "backend-specialist-template",
+      "name": "Backend Specialist Template",
+      "sourcePath": "agents/Engineer/templates/backend-specialist.md",
+      "capabilityTags": ["template", "backend", "implementation"]
+    },
+    {
+      "id": "frontend-specialist-template",
+      "name": "Frontend Specialist Template",
+      "sourcePath": "agents/Engineer/templates/frontend-specialist.md",
+      "capabilityTags": ["template", "frontend", "delivery"]
+    },
+    {
+      "id": "integration-specialist-template",
+      "name": "Integration Specialist Template",
+      "sourcePath": "agents/Engineer/templates/integration-specialist.md",
+      "capabilityTags": ["template", "integration", "connectors"]
+    }
+  ],
+  "dependencyAliases": {
+    "programs": {
+      "shopify": ["baltzer-shopify"],
+      "event-platform": ["baltzer-event-management-platform"],
+      "workforce-api": ["baltzer-employee-schedule-salary-api"],
+      "seo-agent-playground": ["samlino-seo-agent-playground"]
+    }
+  },
+  "agentOverrides": {
+    "engineer": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Engineer owns the Kanban delivery lane and must be invokable inside the single-process control plane.",
+        "activationOrder": 5
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:engineer",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "ian-master": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Low-risk governance lane selected for the first controlled activation set.",
+        "activationOrder": 1
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:ian-master",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "artisan-master": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Artisan master can orchestrate local planning and delegation packets from the control plane while remote estates stay explicitly delegated.",
+        "activationOrder": 6
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:artisan-master",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "baltzer-master": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Baltzer master needs an active orchestration lane even while several child programs remain blocked or held.",
+        "activationOrder": 7
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:baltzer-master",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "lavprishjemmeside-master": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Lavprishjemmeside master should manage remote-estate triage and packaging from the control plane without activating child runtimes directly.",
+        "activationOrder": 8
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:lavprishjemmeside-master",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "personal-assistant-master": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Personal Assistant master is lightweight enough to run as a local orchestration lane and should retain its own memory surface.",
+        "activationOrder": 9
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:personal-assistant-master",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "samlino-master": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Samlino master needs a governed planning lane for SEO and product work while legacy child workflows remain separately held.",
+        "activationOrder": 10
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:samlino-master",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "data-observability-task": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Internal telemetry lane is safe to activate without external program runtimes.",
+        "activationOrder": 2
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:data-observability-task",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "platform-reliability-task": {
+      "enablement": {
+        "state": "ready",
+        "reason": "Runtime guardrails are ready, but this lane stays non-invoking until later connector and invoke work lands.",
+        "activationOrder": 11
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:platform-reliability-task",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "automation-quality-task": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Readiness and regression policy can run entirely inside the control plane.",
+        "activationOrder": 3
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:automation-quality-task",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "portfolio-pmo-task": {
+      "enablement": {
+        "state": "enabled",
+        "reason": "Planning and dependency governance is part of the first safe activation set.",
+        "activationOrder": 4
+      },
+      "runtime": {
+        "adapter": "in-process-function",
+        "entry": "agent:portfolio-pmo-task",
+        "invocation": "manual",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store"],
+        "expected": "healthy"
+      }
+    },
+    "baltzer-events-task": {
+      "enablement": {
+        "state": "blocked",
+        "reason": "Blocked by the event-management-platform program remaining a stub.",
+        "activationOrder": null
+      },
+      "runtime": {
+        "adapter": "connector-probe",
+        "entry": "agent:baltzer-events-task",
+        "invocation": "none",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store", "programs"],
+        "expected": "blocked"
+      }
+    },
+    "baltzer-shopify-core-task": {
+      "enablement": {
+        "state": "blocked",
+        "reason": "Blocked until the Baltzer Shopify program stops being a stub and receives a real contract.",
+        "activationOrder": null
+      },
+      "runtime": {
+        "adapter": "connector-probe",
+        "entry": "agent:baltzer-shopify-core-task",
+        "invocation": "none",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store", "programs"],
+        "expected": "blocked"
+      }
+    },
+    "baltzer-tcg-index-task": {
+      "enablement": {
+        "state": "held",
+        "reason": "Held because the TCG stack is heavy and must stay off the base server.",
+        "activationOrder": null
+      },
+      "runtime": {
+        "adapter": "registry-only",
+        "entry": "agent:baltzer-tcg-index-task",
+        "invocation": "none",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry"],
+        "expected": "held"
+      }
+    },
+    "baltzer-workforce-salary-task": {
+      "enablement": {
+        "state": "blocked",
+        "reason": "Blocked by the workforce salary API remaining placeholder-only.",
+        "activationOrder": null
+      },
+      "runtime": {
+        "adapter": "connector-probe",
+        "entry": "agent:baltzer-workforce-salary-task",
+        "invocation": "none",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry", "adapter", "state-store", "programs"],
+        "expected": "blocked"
+      }
+    },
+    "samlino-seo-agent-task": {
+      "enablement": {
+        "state": "held",
+        "reason": "Held because it depends on the legacy SEO playground and brownfield secrets.",
+        "activationOrder": null
+      },
+      "runtime": {
+        "adapter": "registry-only",
+        "entry": "agent:samlino-seo-agent-task",
+        "invocation": "none",
+        "allowChildProcess": false
+      },
+      "health": {
+        "probes": ["registry"],
+        "expected": "held"
+      }
+    }
+  },
+  "entries": [
+    {
+      "id": "father",
+      "name": "father (IAn)",
+      "kind": "root",
+      "parentId": null,
+      "purpose": "Portfolio-wide orchestration root for the control plane.",
+      "dependencies": ["registry", "queue", "chat-model-adapter", "sqlite"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["orchestration", "portfolio", "governance"],
+      "sourcePath": "agents/IAn",
+      "status": "planned",
+      "notes": "Top operator identity only; no dedicated runtime."
+    },
+    {
+      "id": "engineer",
+      "name": "engineer",
+      "kind": "master",
+      "parentId": "father",
+      "purpose": "Platform reliability and integration coordinator.",
+      "dependencies": ["sqlite", "wordpress", "shopify", "brevo", "billy"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["platform", "reliability", "integration"],
+      "sourcePath": "agents/Engineer",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Overlaps with ian-master on platform implementation scope."
+    },
+    {
+      "id": "ian-master",
+      "name": "ian-master",
+      "kind": "master",
+      "parentId": "father",
+      "purpose": "PMO and governance coordinator for portfolio execution.",
+      "dependencies": ["queue", "registry", "execution-history"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["governance", "pmo", "planning"],
+      "sourcePath": "agents/platform/ian-master",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Should stay governance-first rather than duplicating Engineer runtime work."
+    },
+    {
+      "id": "artisan-master",
+      "name": "artisan-master",
+      "kind": "master",
+      "parentId": "father",
+      "purpose": "WordPress, B2B, reporting, and lifecycle owner for Artisan.",
+      "dependencies": ["wordpress", "mysql", "billy", "brevo"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["wordpress", "b2b", "email", "reporting"],
+      "sourcePath": "agents/artisan/artisan-master",
+      "status": "planned",
+      "notes": "Maps to remote WordPress and reporting modules later."
+    },
+    {
+      "id": "baltzer-master",
+      "name": "baltzer-master",
+      "kind": "master",
+      "parentId": "father",
+      "purpose": "Shopify, events, workforce, and reporting owner for Baltzer.",
+      "dependencies": ["shopify", "billy", "reporting", "event-workflows"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["shopify", "retail", "events", "reporting"],
+      "sourcePath": "agents/baltzer/baltzer-master",
+      "status": "planned",
+      "notes": "Several child tasks are still placeholders and should stay dormant."
+    },
+    {
+      "id": "lavprishjemmeside-master",
+      "name": "lavprishjemmeside-master",
+      "kind": "master",
+      "parentId": "father",
+      "purpose": "CMS, SEO, ads, and subscriptions orchestrator for Lavprishjemmeside.",
+      "dependencies": ["remote-repos", "cpanel", "mysql", "ads-reporting"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["cms", "seo", "ads", "subscriptions"],
+      "sourcePath": "agents/lavprishjemmeside/lavprishjemmeside-master",
+      "status": "planned",
+      "notes": "Depends primarily on remote estates rather than local services."
+    },
+    {
+      "id": "personal-assistant-master",
+      "name": "personal-assistant-master",
+      "kind": "master",
+      "parentId": "father",
+      "purpose": "Personal productivity, communication, and fitness orchestrator.",
+      "dependencies": ["calendar-provider", "email-provider", "health-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["personal-ops", "communication", "fitness"],
+      "sourcePath": "agents/personal-assistant/personal-assistant-master",
+      "status": "planned",
+      "notes": "Most children are mergeable into a smaller personal ops surface."
+    },
+    {
+      "id": "samlino-master",
+      "name": "samlino-master",
+      "kind": "master",
+      "parentId": "father",
+      "purpose": "SEO and product orchestration authority for Samlino.",
+      "dependencies": ["samlino-runtime", "workspace", "seo-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["seo", "content", "product-ops"],
+      "sourcePath": "agents/samlino/samlino-master",
+      "status": "planned",
+      "notes": "Contains the largest set of mergeable specialist packets."
+    },
+    {
+      "id": "data-observability-task",
+      "name": "data-observability-task",
+      "kind": "task",
+      "parentId": "engineer",
+      "purpose": "Telemetry and KPI pipeline specialist.",
+      "dependencies": ["sqlite", "dashboards", "metrics"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["observability", "data", "metrics"],
+      "sourcePath": "agents/Engineer/tasks/data-observability-task",
+      "status": "planned",
+      "notes": "Useful as a capability tag in later phases."
+    },
+    {
+      "id": "integration-architecture-task",
+      "name": "integration-architecture-task",
+      "kind": "task",
+      "parentId": "engineer",
+      "purpose": "External integration design and connector governance.",
+      "dependencies": ["wordpress", "shopify", "brevo", "billy"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["integration", "connectors", "architecture"],
+      "sourcePath": "agents/Engineer/tasks/integration-architecture-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Overlaps with integration template roles and can stay virtual."
+    },
+    {
+      "id": "platform-reliability-task",
+      "name": "platform-reliability-task",
+      "kind": "task",
+      "parentId": "engineer",
+      "purpose": "Runtime hardening, incident, and uptime specialist.",
+      "dependencies": ["logs", "health-checks", "control-plane"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["reliability", "uptime", "operations"],
+      "sourcePath": "agents/Engineer/tasks/platform-reliability-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Close enough to backend specialist behavior to avoid a separate runtime."
+    },
+    {
+      "id": "automation-quality-task",
+      "name": "automation-quality-task",
+      "kind": "task",
+      "parentId": "ian-master",
+      "purpose": "Regression and release-readiness automation gate.",
+      "dependencies": ["queue", "execution-history", "checklists"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["qa", "automation", "readiness"],
+      "sourcePath": "agents/platform/ian-master/tasks/automation-quality-task",
+      "status": "planned",
+      "notes": "Can operate as a health-check policy later."
+    },
+    {
+      "id": "ian-implementation-task",
+      "name": "ian-implementation-task",
+      "kind": "task",
+      "parentId": "ian-master",
+      "purpose": "Scoped platform implementation packet for PMO-owned work.",
+      "dependencies": ["registry", "control-plane", "execution-history"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["implementation", "delivery", "platform"],
+      "sourcePath": "agents/platform/ian-master/tasks/ian-implementation-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Overlaps with Engineer when implementation is not governance-specific."
+    },
+    {
+      "id": "ian-research-task",
+      "name": "ian-research-task",
+      "kind": "task",
+      "parentId": "ian-master",
+      "purpose": "Research packet for platform and portfolio questions.",
+      "dependencies": ["queue", "docs", "context"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["research", "analysis", "planning"],
+      "sourcePath": "agents/platform/ian-master/tasks/ian-research-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Can fold into PMO workflows instead of remaining separate."
+    },
+    {
+      "id": "portfolio-pmo-task",
+      "name": "portfolio-pmo-task",
+      "kind": "task",
+      "parentId": "ian-master",
+      "purpose": "Dependency, sequencing, and portfolio governance specialist.",
+      "dependencies": ["queue", "registry", "execution-history"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["pmo", "sequencing", "governance"],
+      "sourcePath": "agents/platform/ian-master/tasks/portfolio-pmo-task",
+      "status": "planned",
+      "notes": "Useful as a first-class planning capability."
+    },
+    {
+      "id": "artisan-accounting-integration-task",
+      "name": "artisan-accounting-integration-task",
+      "kind": "task",
+      "parentId": "artisan-master",
+      "purpose": "Accounting sync and reconciliation specialist for Artisan.",
+      "dependencies": ["billy", "reporting", "mysql"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["accounting", "reconciliation", "reporting"],
+      "sourcePath": "agents/artisan/artisan-master/tasks/artisan-accounting-integration-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Should converge with the Baltzer accounting lane."
+    },
+    {
+      "id": "artisan-brevo-lifecycle-task",
+      "name": "artisan-brevo-lifecycle-task",
+      "kind": "task",
+      "parentId": "artisan-master",
+      "purpose": "Lifecycle and email automation specialist for Brevo.",
+      "dependencies": ["brevo", "customer-segments", "campaigns"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["email", "brevo", "lifecycle"],
+      "sourcePath": "agents/artisan/artisan-master/tasks/artisan-brevo-lifecycle-task",
+      "status": "planned",
+      "notes": "Can remain a tenant-specific capability later."
+    },
+    {
+      "id": "artisan-wp-b2b-task",
+      "name": "artisan-wp-b2b-task",
+      "kind": "task",
+      "parentId": "artisan-master",
+      "purpose": "WordPress theme and B2B order workflow specialist.",
+      "dependencies": ["wordpress", "woocommerce", "mysql"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["wordpress", "woocommerce", "b2b"],
+      "sourcePath": "agents/artisan/artisan-master/tasks/artisan-wp-b2b-task",
+      "status": "planned",
+      "notes": "Primary bridge to the remote WordPress estate."
+    },
+    {
+      "id": "baltzer-accounting-integration-task",
+      "name": "baltzer-accounting-integration-task",
+      "kind": "task",
+      "parentId": "baltzer-master",
+      "purpose": "Accounting sync and reconciliation specialist for Baltzer.",
+      "dependencies": ["billy", "reporting"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["accounting", "reconciliation", "reporting"],
+      "sourcePath": "agents/baltzer/baltzer-master/tasks/baltzer-accounting-integration-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Duplicate capability shape with Artisan accounting."
+    },
+    {
+      "id": "baltzer-events-task",
+      "name": "baltzer-events-task",
+      "kind": "task",
+      "parentId": "baltzer-master",
+      "purpose": "Event workflow and platform specialist.",
+      "dependencies": ["event-platform", "inventory", "calendar"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["events", "operations", "retail"],
+      "sourcePath": "agents/baltzer/baltzer-master/tasks/baltzer-events-task",
+      "status": "pending",
+      "notes": "Backed by a placeholder program only."
+    },
+    {
+      "id": "baltzer-shopify-core-task",
+      "name": "baltzer-shopify-core-task",
+      "kind": "task",
+      "parentId": "baltzer-master",
+      "purpose": "Core Shopify operations and integration specialist.",
+      "dependencies": ["shopify", "catalog", "orders"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["shopify", "commerce", "ops"],
+      "sourcePath": "agents/baltzer/baltzer-master/tasks/baltzer-shopify-core-task",
+      "status": "planned",
+      "notes": "Likely one of the first Baltzer agents to activate in Phase 2."
+    },
+    {
+      "id": "baltzer-tcg-index-task",
+      "name": "baltzer-tcg-index-task",
+      "kind": "task",
+      "parentId": "baltzer-master",
+      "purpose": "Pricing ingestion and tracking specialist for TCG data.",
+      "dependencies": ["tcg-index", "proxies", "scrapers"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["pricing", "scraping", "inventory"],
+      "sourcePath": "agents/baltzer/baltzer-master/tasks/baltzer-tcg-index-task",
+      "status": "planned",
+      "heavyDependencyRisk": true,
+      "notes": "Must remain on-demand because the underlying stack is too heavy for boot."
+    },
+    {
+      "id": "baltzer-workforce-salary-task",
+      "name": "baltzer-workforce-salary-task",
+      "kind": "task",
+      "parentId": "baltzer-master",
+      "purpose": "Scheduling and salary operations specialist.",
+      "dependencies": ["workforce-api", "salary-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["workforce", "salary", "operations"],
+      "sourcePath": "agents/baltzer/baltzer-master/tasks/baltzer-workforce-salary-task",
+      "status": "pending",
+      "notes": "Program support is still placeholder-only."
+    },
+    {
+      "id": "lph-ads-dashboard-task",
+      "name": "lph-ads-dashboard-task",
+      "kind": "task",
+      "parentId": "lavprishjemmeside-master",
+      "purpose": "Paid media dashboard and reporting specialist.",
+      "dependencies": ["remote-repos", "ads-data", "dashboards"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["ads", "reporting", "dashboards"],
+      "sourcePath": "agents/lavprishjemmeside/lavprishjemmeside-master/tasks/lph-ads-dashboard-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Should likely merge with SEO dashboard work into one analytics lane."
+    },
+    {
+      "id": "lph-ai-cms-task",
+      "name": "lph-ai-cms-task",
+      "kind": "task",
+      "parentId": "lavprishjemmeside-master",
+      "purpose": "AI-assisted CMS feature and hardening specialist.",
+      "dependencies": ["remote-repos", "cpanel", "mysql"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["cms", "ai", "content"],
+      "sourcePath": "agents/lavprishjemmeside/lavprishjemmeside-master/tasks/lph-ai-cms-task",
+      "status": "planned",
+      "notes": "Likely the most concrete Lavprishjemmeside capability."
+    },
+    {
+      "id": "lph-seo-dashboard-task",
+      "name": "lph-seo-dashboard-task",
+      "kind": "task",
+      "parentId": "lavprishjemmeside-master",
+      "purpose": "SEO dashboard and visibility reporting specialist.",
+      "dependencies": ["remote-repos", "seo-data", "dashboards"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["seo", "reporting", "dashboards"],
+      "sourcePath": "agents/lavprishjemmeside/lavprishjemmeside-master/tasks/lph-seo-dashboard-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Pairs naturally with the ads dashboard lane."
+    },
+    {
+      "id": "lph-subscription-ops-task",
+      "name": "lph-subscription-ops-task",
+      "kind": "task",
+      "parentId": "lavprishjemmeside-master",
+      "purpose": "Subscription health and operational reporting specialist.",
+      "dependencies": ["mysql", "subscriptions", "reporting"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["subscriptions", "operations", "reporting"],
+      "sourcePath": "agents/lavprishjemmeside/lavprishjemmeside-master/tasks/lph-subscription-ops-task",
+      "status": "planned",
+      "notes": "Useful as a dedicated revenue-ops capability."
+    },
+    {
+      "id": "pa-email-social-task",
+      "name": "pa-email-social-task",
+      "kind": "task",
+      "parentId": "personal-assistant-master",
+      "purpose": "Inbox and social communication specialist.",
+      "dependencies": ["email-provider", "social-provider"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["email", "social", "communications"],
+      "sourcePath": "agents/personal-assistant/personal-assistant-master/tasks/pa-email-social-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Should likely merge into one personal ops capability."
+    },
+    {
+      "id": "pa-fitness-dashboard-task",
+      "name": "pa-fitness-dashboard-task",
+      "kind": "task",
+      "parentId": "personal-assistant-master",
+      "purpose": "Fitness and health dashboard specialist.",
+      "dependencies": ["health-data", "dashboards"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["fitness", "health", "dashboards"],
+      "sourcePath": "agents/personal-assistant/personal-assistant-master/tasks/pa-fitness-dashboard-task",
+      "status": "planned",
+      "notes": "Distinct enough to stay isolated from communication workflows."
+    },
+    {
+      "id": "pa-taskmanager-calendar-task",
+      "name": "pa-taskmanager-calendar-task",
+      "kind": "task",
+      "parentId": "personal-assistant-master",
+      "purpose": "Task and calendar orchestration specialist.",
+      "dependencies": ["task-provider", "calendar-provider"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["tasks", "calendar", "planning"],
+      "sourcePath": "agents/personal-assistant/personal-assistant-master/tasks/pa-taskmanager-calendar-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Another candidate for a merged personal ops lane."
+    },
+    {
+      "id": "samlino-competitor-research-task",
+      "name": "samlino-competitor-research-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Competitor discovery and positioning research specialist.",
+      "dependencies": ["samlino-runtime", "seo-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["research", "seo", "competitors"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-competitor-research-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Should collapse into a broader Samlino research capability."
+    },
+    {
+      "id": "samlino-content-analyst-task",
+      "name": "samlino-content-analyst-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Content analysis and gap-finding specialist.",
+      "dependencies": ["samlino-runtime", "content-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["content", "analysis", "seo"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-content-analyst-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Can merge with writer and composer roles."
+    },
+    {
+      "id": "samlino-content-composer-task",
+      "name": "samlino-content-composer-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Content structure and outline specialist.",
+      "dependencies": ["samlino-runtime", "content-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["content", "composition", "seo"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-content-composer-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Should live inside a merged content lane."
+    },
+    {
+      "id": "samlino-content-writer-task",
+      "name": "samlino-content-writer-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Content drafting and copy specialist.",
+      "dependencies": ["samlino-runtime", "content-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["content", "writing", "seo"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-content-writer-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Another member of the same future content lane."
+    },
+    {
+      "id": "samlino-keyword-analysis-task",
+      "name": "samlino-keyword-analysis-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Keyword research and prioritization specialist.",
+      "dependencies": ["samlino-runtime", "seo-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["keywords", "seo", "analysis"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-keyword-analysis-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Can be folded into the research lane."
+    },
+    {
+      "id": "samlino-opportunity-explorer-task",
+      "name": "samlino-opportunity-explorer-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Opportunity discovery and market scanning specialist.",
+      "dependencies": ["samlino-runtime", "research-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["research", "opportunities", "seo"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-opportunity-explorer-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Fits with the research packet rather than needing its own runtime."
+    },
+    {
+      "id": "samlino-performance-reviewer-task",
+      "name": "samlino-performance-reviewer-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Ranking diagnostics and performance review specialist.",
+      "dependencies": ["samlino-runtime", "search-console-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["seo", "review", "diagnostics"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-performance-reviewer-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Another candidate for the merged audit lane."
+    },
+    {
+      "id": "samlino-product-ops-task",
+      "name": "samlino-product-ops-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Product specification and release planning specialist.",
+      "dependencies": ["workspace", "queue", "specs"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["product", "planning", "operations"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-product-ops-task",
+      "status": "planned",
+      "notes": "Should remain distinct from SEO-only capabilities."
+    },
+    {
+      "id": "samlino-prototyper-task",
+      "name": "samlino-prototyper-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Prototype generation specialist.",
+      "dependencies": ["samlino-runtime", "prototype-tools"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["prototype", "delivery", "seo"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-prototyper-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Best treated as part of a merged audit/prototype lane."
+    },
+    {
+      "id": "samlino-schema-generator-task",
+      "name": "samlino-schema-generator-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "Schema and structured-data generation specialist.",
+      "dependencies": ["samlino-runtime", "schema-tools"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["schema", "seo", "content"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-schema-generator-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Could collapse into the content lane."
+    },
+    {
+      "id": "samlino-seo-agent-task",
+      "name": "samlino-seo-agent-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "SEO workflow experiment packet tied to the old playground flow.",
+      "dependencies": ["seo-agent-playground", "claude-cli", "supabase"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["seo", "experiments", "legacy"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-seo-agent-task",
+      "status": "legacy-hold",
+      "heavyDependencyRisk": true,
+      "notes": "Depends on a brownfield hold and should remain disabled until isolated."
+    },
+    {
+      "id": "samlino-seo-auditor-task",
+      "name": "samlino-seo-auditor-task",
+      "kind": "task",
+      "parentId": "samlino-master",
+      "purpose": "SEO crawl and audit snapshot specialist.",
+      "dependencies": ["samlino-runtime", "crawl-data"],
+      "runtime": {
+        "mode": "function",
+        "transport": "http-in-process",
+        "executionEnabled": false
+      },
+      "capabilityTags": ["seo", "audit", "crawl"],
+      "sourcePath": "agents/samlino/samlino-master/tasks/samlino-seo-auditor-task",
+      "status": "planned",
+      "mergeCandidate": true,
+      "notes": "Should sit inside the merged audit/prototype lane."
+    }
+  ]
+}

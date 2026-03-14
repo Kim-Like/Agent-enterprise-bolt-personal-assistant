@@ -1,0 +1,26 @@
+{
+  "defaultModelFamily": "sonnet",
+  "models": [
+    {
+      "family": "haiku",
+      "providerId": "claude-3-5-haiku-latest",
+      "label": "Claude Haiku 4.5",
+      "maxContextTokens": 160000,
+      "reservedReplyTokens": 8000
+    },
+    {
+      "family": "sonnet",
+      "providerId": "claude-sonnet-4-5",
+      "label": "Claude Sonnet 4.6",
+      "maxContextTokens": 180000,
+      "reservedReplyTokens": 12000
+    },
+    {
+      "family": "opus",
+      "providerId": "claude-opus-4-1",
+      "label": "Claude Opus 4.6",
+      "maxContextTokens": 200000,
+      "reservedReplyTokens": 16000
+    }
+  ]
+}
