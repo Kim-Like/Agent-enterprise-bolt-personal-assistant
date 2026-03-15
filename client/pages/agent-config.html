@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Config</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0A0D12;
+      --bg2: #0F1318;
+      --bg3: #151A22;
+      --card: #161B24;
+      --card2: #1C2330;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.13);
+      --text: #F0F4FF;
+      --muted: #8892A4;
+      --faint: #4A5568;
+      --accent: #3B82F6;
+      --accent2: #60A5FA;
+      --green: #10B981;
+      --amber: #F59E0B;
+      --red: #EF4444;
+      --rail: 260px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ═══════════════════════════════ RAIL ═══════════════════════════════ */
+    .rail {
+      width: var(--rail);
+      min-height: 100vh;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .rail-header {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rail-back {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 500;
+      margin-bottom: 14px;
+      transition: color 0.15s;
+    }
+    .rail-back:hover { color: var(--text); }
+
+    .rail-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+
+    .rail-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .rail-search {
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 7px 10px 7px 32px;
+      font-family: inherit;
+      font-size: 12.5px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      position: relative;
+    }
+    .search-input::placeholder { color: var(--faint); }
+    .search-input:focus { border-color: var(--accent); }
+
+    .search-wrap {
+      position: relative;
+    }
+    .search-icon {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--faint);
+    }
+
+    .rail-list {
+      flex: 1;
+      padding: 8px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      overflow-y: auto;
+    }
+
+    .agent-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.12s;
+      border: 1px solid transparent;
+    }
+    .agent-item:hover { background: var(--bg3); }
+    .agent-item.active {
+      background: rgba(59,130,246,0.12);
+      border-color: rgba(59,130,246,0.25);
+    }
+
+    .agent-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .agent-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .agent-item-meta { min-width: 0; flex: 1; }
+    .agent-item-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .agent-item.active .agent-item-name { color: var(--accent2); }
+
+    .agent-item-kind {
+      font-size: 10.5px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .kind-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+    .kind-root { background: rgba(245,158,11,0.18); color: #F59E0B; }
+    .kind-master { background: rgba(59,130,246,0.18); color: #60A5FA; }
+    .kind-task { background: rgba(255,255,255,0.07); color: var(--muted); }
+
+    .section-divider {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--faint);
+      padding: 10px 10px 4px;
+    }
+
+    /* ═══════════════════════════════ MAIN ═══════════════════════════════ */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--faint);
+      gap: 12px;
+    }
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .empty-label { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .empty-sub { font-size: 12.5px; color: var(--faint); }
+
+    /* ═══════════════════════════════ EDITOR ═══════════════════════════════ */
+    .editor-wrap {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
+
+    .editor-header {
+      padding: 22px 32px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      padding-bottom: 18px;
+    }
+
+    .editor-avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .editor-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 2px solid var(--border2);
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .editor-avatar:hover {
+      border-color: var(--accent);
+      transform: scale(1.04);
+    }
+    .editor-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .avatar-edit-hint {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .editor-header-meta { flex: 1; min-width: 0; }
+
+    .editor-agent-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .editor-agent-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .editor-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .save-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      background: var(--accent);
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s, transform 0.1s;
+    }
+    .save-btn:hover { background: #2563EB; }
+    .save-btn:active { transform: scale(0.97); }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .save-btn.saving {
+      background: var(--card2);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    .save-btn.saved {
+      background: var(--green);
+    }
+
+    .discard-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 14px;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border2);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .discard-btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
+
+    /* ═══════════════════════════════ TABS ═══════════════════════════════ */
+    .editor-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+
+    .tab-btn {
+      padding: 12px 16px 11px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent2);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+      display: none;
+    }
+    .tab-btn.dirty .tab-dot { display: block; }
+
+    /* ═══════════════════════════════ PANELS ═══════════════════════════════ */
+    .panel-area {
+      flex: 1;
+      padding: 24px 32px 32px;
+      overflow-y: auto;
+      display: none;
+    }
+    .panel-area.visible { display: flex; flex-direction: column; gap: 20px; }
+
+    .panel-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .panel-hint {
+      font-size: 12px;
+      color: var(--faint);
+      margin-top: -4px;
+      margin-bottom: 10px;
+    }
+
+    .md-editor {
+      width: 100%;
+      min-height: 320px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .md-editor:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+
+    .char-count {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--faint);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    /* Avatar panel */
+    .avatar-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    .avatar-preview-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar-preview {
+      width: 96px;
+      height: 96px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 2px solid var(--border2);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: transform 0.2s;
+    }
+    .avatar-preview:hover { transform: scale(1.04); }
+    .avatar-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .avatar-preview-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .avatar-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+    }
+
+    .field-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 9px;
+      padding: 9px 13px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      max-width: 200px;
+    }
+    .field-input:focus { border-color: var(--accent); }
+
+    .color-swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.12s, border-color 0.12s;
+      position: relative;
+    }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.selected {
+      border-color: #fff;
+      transform: scale(1.1);
+    }
+    .swatch.selected::after {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: 11px;
+      border: 2px solid rgba(255,255,255,0.35);
+    }
+
+    .regen-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 16px;
+      background: var(--card2);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1px solid var(--border2);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .regen-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    /* Toast */
+    .toast-wrap {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      animation: slideUp 0.25s ease, fadeOut 0.3s ease 2.2s forwards;
+      pointer-events: none;
+    }
+    .toast.ok { background: #065F46; border: 1px solid #059669; }
+    .toast.err { background: #7F1D1D; border: 1px solid #DC2626; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; pointer-events: none; } }
+
+    /* Loading shimmer */
+    .skel { background: linear-gradient(90deg, var(--bg3) 25%, var(--card2) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: shimmer 1.3s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+      .rail { width: 200px; }
+      .editor-header { padding: 16px 18px 14px; }
+      .editor-tabs { padding: 0 18px; }
+      .panel-area { padding: 18px 18px 28px; }
+    }
+    @media (max-width: 640px) {
+      .rail { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Rail ── -->
+<aside class="rail">
+  <div class="rail-header">
+    <a href="/agents" class="rail-back">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Agent Inventory
+    </a>
+    <div class="rail-title">Agent Config</div>
+    <div class="rail-subtitle">Persona &amp; identity editor</div>
+  </div>
+
+  <div class="rail-search">
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input class="search-input" type="text" id="search-input" placeholder="Filter agents…" />
+    </div>
+  </div>
+
+  <div class="rail-list" id="rail-list">
+    <div class="skel" style="height:36px;margin:4px 2px;"></div>
+    <div class="skel" style="height:36px;margin:4px 2px;"></div>
+    <div class="skel" style="height:36px;margin:4px 2px;"></div>
+    <div class="skel" style="height:36px;margin:4px 2px;"></div>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<div class="main" id="main">
+
+  <div class="empty-state" id="empty-state">
+    <div class="empty-icon">
+      <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" color="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    </div>
+    <div class="empty-label">Select an agent</div>
+    <div class="empty-sub">Choose from the list to edit persona files &amp; avatar</div>
+  </div>
+
+  <div id="editor" style="display:none; flex: 1; display: none; flex-direction: column;">
+
+    <div class="editor-header">
+      <div class="editor-avatar-wrap">
+        <div class="editor-avatar" id="editor-avatar" title="Click to customize avatar">
+          <img id="editor-avatar-img" src="" alt="" />
+        </div>
+        <div class="avatar-edit-hint">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+      </div>
+      <div class="editor-header-meta">
+        <div class="editor-agent-name" id="editor-name">—</div>
+        <div class="editor-agent-path" id="editor-path">—</div>
+      </div>
+      <div class="editor-header-actions">
+        <button class="discard-btn" id="discard-btn">Discard</button>
+        <button class="save-btn" id="save-btn">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save changes
+        </button>
+      </div>
+    </div>
+
+    <div class="editor-tabs">
+      <button class="tab-btn active" data-tab="soul">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
+        Soul
+        <span class="tab-dot"></span>
+      </button>
+      <button class="tab-btn" data-tab="user">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        User
+        <span class="tab-dot"></span>
+      </button>
+      <button class="tab-btn" data-tab="avatar">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+        Avatar
+        <span class="tab-dot"></span>
+      </button>
+    </div>
+
+    <!-- Soul panel -->
+    <div class="panel-area visible" id="panel-soul">
+      <div>
+        <div class="panel-label">soul.md — Agent Identity &amp; Non-Negotiables</div>
+        <div class="panel-hint">Defines who this agent is, its core values and non-negotiable rules. Changes here shape every interaction.</div>
+        <textarea class="md-editor" id="soul-editor" spellcheck="false" placeholder="# Agent Soul&#10;&#10;## Identity&#10;I am…"></textarea>
+        <div class="char-count" id="soul-chars">0 chars</div>
+      </div>
+    </div>
+
+    <!-- User panel -->
+    <div class="panel-area" id="panel-user">
+      <div>
+        <div class="panel-label">user.md — User &amp; Stakeholder Context</div>
+        <div class="panel-hint">Describes who this agent serves, the portfolio scope, and communication contracts. Provides the human context layer.</div>
+        <textarea class="md-editor" id="user-editor" spellcheck="false" placeholder="# User Context&#10;&#10;## Who I Serve&#10;…"></textarea>
+        <div class="char-count" id="user-chars">0 chars</div>
+      </div>
+    </div>
+
+    <!-- Avatar panel -->
+    <div class="panel-area" id="panel-avatar">
+      <div class="avatar-grid">
+        <div class="avatar-preview-block">
+          <div class="avatar-preview">
+            <img id="avatar-preview-img" src="" alt="" />
+          </div>
+          <div class="avatar-preview-name" id="avatar-preview-name">—</div>
+        </div>
+
+        <div class="avatar-controls">
+          <div class="field-row">
+            <div class="field-label">Glyph — Display initials</div>
+            <input class="field-input" id="avatar-glyph-input" type="text" maxlength="4" placeholder="AG" />
+          </div>
+
+          <div class="field-row">
+            <div class="field-label">Accent color</div>
+            <div class="color-swatches" id="color-swatches"></div>
+            <input class="field-input" id="avatar-accent-input" type="text" maxlength="9" placeholder="#3B82F6" style="margin-top: 8px;" />
+          </div>
+
+          <button class="regen-btn" id="avatar-preview-btn">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+            Preview changes
+          </button>
+
+          <button class="save-btn" id="avatar-save-btn" style="max-width:180px;">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
+            Save avatar
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+  const ACCENT_PALETTE = [
+    "#2563EB","#7C3AED","#D97706","#059669","#DC2626",
+    "#0891B2","#4F46E5","#BE185D","#65A30D","#EA580C",
+  ];
+
+  let state = {
+    agents: [],
+    currentId: null,
+    soul: "",
+    user: "",
+    soulDirty: false,
+    userDirty: false,
+    avatarDirty: false,
+    avatarGlyph: "",
+    avatarAccent: "",
+    avatarUrl: "",
+  };
+
+  /* ── Helpers ── */
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function toast(msg, type = "ok") {
+    const el = document.createElement("div");
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById("toast-wrap").appendChild(el);
+    setTimeout(() => el.remove(), 2700);
+  }
+
+  function setTabDirty(tab, dirty) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (btn) btn.classList.toggle("dirty", dirty);
+  }
+
+  function updateSaveBtn() {
+    const btn = document.getElementById("save-btn");
+    const hasChanges = state.soulDirty || state.userDirty;
+    btn.disabled = !hasChanges;
+  }
+
+  function updateCharCount(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${text.length.toLocaleString()} chars`;
+  }
+
+  /* ── Rail ── */
+  function renderRail(filter = "") {
+    const list = document.getElementById("rail-list");
+    const filtered = filter
+      ? state.agents.filter(a => a.name.toLowerCase().includes(filter.toLowerCase()) || a.id.toLowerCase().includes(filter.toLowerCase()))
+      : state.agents;
+
+    const grouped = { root: [], master: [], task: [] };
+    for (const a of filtered) {
+      (grouped[a.kind] || grouped.task).push(a);
+    }
+
+    let html = "";
+    const sections = [
+      { key: "root", label: "Root" },
+      { key: "master", label: "Masters" },
+      { key: "task", label: "Tasks" },
+    ];
+
+    for (const { key, label } of sections) {
+      const items = grouped[key] || [];
+      if (!items.length) continue;
+      html += `<div class="section-divider">${label}</div>`;
+      for (const a of items) {
+        const active = a.id === state.currentId ? " active" : "";
+        html += `
+          <div class="agent-item${active}" data-id="${esc(a.id)}">
+            <div class="agent-avatar">
+              <img src="${esc(a.avatarUrl)}" alt="${esc(a.avatarGlyph)}" />
+            </div>
+            <div class="agent-item-meta">
+              <div class="agent-item-name">${esc(a.name)}</div>
+              <div class="agent-item-kind">${esc(a.id)}</div>
+            </div>
+            <span class="kind-badge kind-${esc(a.kind)}">${esc(a.kind)}</span>
+          </div>`;
+      }
+    }
+
+    list.innerHTML = html || `<div style="padding:16px 10px;font-size:12.5px;color:var(--faint);">No matches</div>`;
+
+    list.querySelectorAll(".agent-item").forEach(el => {
+      el.addEventListener("click", () => selectAgent(el.dataset.id));
+    });
+  }
+
+  /* ── Load agent list ── */
+  async function loadAgentList() {
+    try {
+      const res = await fetch("/api/agent-config");
+      const data = await res.json();
+      state.agents = data.agents || [];
+      renderRail();
+    } catch(e) {
+      document.getElementById("rail-list").innerHTML = `<div style="padding:12px;font-size:12px;color:#EF4444;">Failed to load agents</div>`;
+    }
+  }
+
+  /* ── Select agent ── */
+  async function selectAgent(id) {
+    if (state.currentId === id) return;
+    state.currentId = id;
+    renderRail();
+
+    document.getElementById("empty-state").style.display = "none";
+    const editor = document.getElementById("editor");
+    editor.style.display = "flex";
+
+    document.getElementById("editor-name").textContent = "Loading…";
+    document.getElementById("editor-path").textContent = "";
+
+    try {
+      const res = await fetch(`/api/agent-config/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error("Not found");
+      const data = await res.json();
+
+      state.soul = data.files["soul.md"] || "";
+      state.user = data.files["user.md"] || "";
+      state.soulDirty = false;
+      state.userDirty = false;
+      state.avatarDirty = false;
+      state.avatarGlyph = data.avatar.glyph || "";
+      state.avatarAccent = data.avatar.accent || "";
+      state.avatarUrl = data.avatar.url || "";
+
+      document.getElementById("editor-name").textContent = data.name;
+      document.getElementById("editor-path").textContent = data.sourcePath;
+      document.getElementById("editor-avatar-img").src = data.avatar.url || "";
+      document.getElementById("avatar-preview-img").src = data.avatar.url || "";
+      document.getElementById("avatar-preview-name").textContent = data.name;
+
+      document.getElementById("soul-editor").value = state.soul;
+      document.getElementById("user-editor").value = state.user;
+      document.getElementById("avatar-glyph-input").value = state.avatarGlyph;
+      document.getElementById("avatar-accent-input").value = state.avatarAccent;
+
+      updateCharCount("soul-chars", state.soul);
+      updateCharCount("user-chars", state.user);
+      setTabDirty("soul", false);
+      setTabDirty("user", false);
+      setTabDirty("avatar", false);
+      updateSaveBtn();
+      updateSwatchSelection(state.avatarAccent);
+
+    } catch(e) {
+      toast("Failed to load agent config", "err");
+    }
+  }
+
+  /* ── Tabs ── */
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".panel-area").forEach(p => p.classList.remove("visible"));
+      btn.classList.add("active");
+      document.getElementById(`panel-${btn.dataset.tab}`).classList.add("visible");
+    });
+  });
+
+  /* ── Editor events ── */
+  document.getElementById("soul-editor").addEventListener("input", function() {
+    state.soul = this.value;
+    state.soulDirty = true;
+    setTabDirty("soul", true);
+    updateCharCount("soul-chars", state.soul);
+    updateSaveBtn();
+  });
+
+  document.getElementById("user-editor").addEventListener("input", function() {
+    state.user = this.value;
+    state.userDirty = true;
+    setTabDirty("user", true);
+    updateCharCount("user-chars", state.user);
+    updateSaveBtn();
+  });
+
+  /* ── Avatar controls ── */
+  function updateSwatchSelection(hex) {
+    document.querySelectorAll(".swatch").forEach(s => {
+      s.classList.toggle("selected", s.dataset.color === hex);
+    });
+  }
+
+  function buildSwatches() {
+    const wrap = document.getElementById("color-swatches");
+    wrap.innerHTML = ACCENT_PALETTE.map(c => `
+      <div class="swatch" data-color="${c}" style="background:${c};" title="${c}"></div>
+    `).join("");
+    wrap.querySelectorAll(".swatch").forEach(s => {
+      s.addEventListener("click", () => {
+        const c = s.dataset.color;
+        document.getElementById("avatar-accent-input").value = c;
+        state.avatarAccent = c;
+        state.avatarDirty = true;
+        setTabDirty("avatar", true);
+        updateSwatchSelection(c);
+      });
+    });
+  }
+
+  document.getElementById("avatar-glyph-input").addEventListener("input", function() {
+    state.avatarGlyph = this.value;
+    state.avatarDirty = true;
+    setTabDirty("avatar", true);
+  });
+
+  document.getElementById("avatar-accent-input").addEventListener("input", function() {
+    state.avatarAccent = this.value;
+    state.avatarDirty = true;
+    setTabDirty("avatar", true);
+    updateSwatchSelection(this.value);
+  });
+
+  document.getElementById("avatar-preview-btn").addEventListener("click", async () => {
+    if (!state.currentId) return;
+    const btn = document.getElementById("avatar-preview-btn");
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/api/agent-config/${encodeURIComponent(state.currentId)}/avatar`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ glyph: state.avatarGlyph, accent: state.avatarAccent }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      const url = data.avatar?.url || "";
+      document.getElementById("avatar-preview-img").src = url;
+      document.getElementById("editor-avatar-img").src = url;
+      state.avatarUrl = url;
+      const agentInList = state.agents.find(a => a.id === state.currentId);
+      if (agentInList) agentInList.avatarUrl = url;
+      renderRail();
+      toast("Preview updated");
+    } catch(e) {
+      toast("Preview failed", "err");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("avatar-save-btn").addEventListener("click", async () => {
+    if (!state.currentId) return;
+    const btn = document.getElementById("avatar-save-btn");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    try {
+      const res = await fetch(`/api/agent-config/${encodeURIComponent(state.currentId)}/avatar`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ glyph: state.avatarGlyph, accent: state.avatarAccent }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      const url = data.avatar?.url || "";
+      document.getElementById("avatar-preview-img").src = url;
+      document.getElementById("editor-avatar-img").src = url;
+      state.avatarUrl = url;
+      const agentInList = state.agents.find(a => a.id === state.currentId);
+      if (agentInList) { agentInList.avatarUrl = url; agentInList.avatarGlyph = state.avatarGlyph; agentInList.avatarAccent = state.avatarAccent; }
+      renderRail();
+      state.avatarDirty = false;
+      setTabDirty("avatar", false);
+      toast("Avatar saved");
+    } catch(e) {
+      toast("Save failed", "err");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg> Save avatar`;
+    }
+  });
+
+  /* ── Save files ── */
+  async function saveFiles() {
+    if (!state.currentId) return;
+    const btn = document.getElementById("save-btn");
+    btn.disabled = true;
+    btn.classList.add("saving");
+    btn.textContent = "Saving…";
+
+    const tasks = [];
+    if (state.soulDirty) {
+      tasks.push(fetch(`/api/agent-config/${encodeURIComponent(state.currentId)}/file`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: "soul.md", content: state.soul }),
+      }).then(r => { if (!r.ok) throw new Error("soul"); return "soul"; }));
+    }
+    if (state.userDirty) {
+      tasks.push(fetch(`/api/agent-config/${encodeURIComponent(state.currentId)}/file`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: "user.md", content: state.user }),
+      }).then(r => { if (!r.ok) throw new Error("user"); return "user"; }));
+    }
+
+    try {
+      const saved = await Promise.all(tasks);
+      if (saved.includes("soul")) { state.soulDirty = false; setTabDirty("soul", false); }
+      if (saved.includes("user")) { state.userDirty = false; setTabDirty("user", false); }
+      updateSaveBtn();
+
+      btn.classList.remove("saving");
+      btn.classList.add("saved");
+      btn.innerHTML = `<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Saved`;
+      toast(`Saved ${saved.join(" & ")} for ${state.currentId}`);
+
+      setTimeout(() => {
+        btn.classList.remove("saved");
+        btn.innerHTML = `<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save changes`;
+        updateSaveBtn();
+      }, 2000);
+
+    } catch(e) {
+      toast("Save failed — check console", "err");
+      btn.classList.remove("saving");
+      btn.innerHTML = `<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg> Save changes`;
+      updateSaveBtn();
+    }
+  }
+
+  document.getElementById("save-btn").addEventListener("click", saveFiles);
+
+  document.getElementById("discard-btn").addEventListener("click", () => {
+    if (!state.currentId) return;
+    document.getElementById("soul-editor").value = "";
+    document.getElementById("user-editor").value = "";
+    const id = state.currentId;
+    state.currentId = null;
+    selectAgent(id);
+  });
+
+  /* ── Search ── */
+  document.getElementById("search-input").addEventListener("input", function() {
+    renderRail(this.value);
+  });
+
+  /* ── Keyboard shortcut ── */
+  document.addEventListener("keydown", e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+      e.preventDefault();
+      if (state.soulDirty || state.userDirty) saveFiles();
+    }
+  });
+
+  /* ── Init ── */
+  buildSwatches();
+  loadAgentList();
+</script>
+</body>
+</html>

@@ -27,6 +27,7 @@ import { projectRoutes } from "./routes/projects.js";
 import { programRoutes } from "./routes/programs.js";
 import { systemMapRoutes } from "./routes/system-map.js";
 import { paRoutes } from "./routes/pa.js";
+import { agentConfigRoutes } from "./routes/agent-config.js";
 import { nordnetRoutes } from "./routes/nordnet.js";
 import { workRoutes } from "./routes/work.js";
 import { createNordnetSession } from "./lib/nordnet-session.js";
@@ -45,6 +46,13 @@ const DELIVERED_PAGES = [
     title: "Agent Inventory",
     source: "delivery",
     file: "client/pages/agents.html",
+  },
+  {
+    id: "agent-config",
+    route: "/agent-config",
+    title: "Agent Config",
+    source: "delivery",
+    file: "client/pages/agent-config.html",
   },
   {
     id: "workboard-home",
@@ -342,6 +350,7 @@ export async function createApp(options = {}) {
   await app.register(systemMapRoutes);
   await app.register(workRoutes);
   await app.register(paRoutes);
+  await app.register(agentConfigRoutes);
   await app.register(nordnetRoutes);
   await app.register(lavprisRoutes, {
     requireInternalAccess: true,
