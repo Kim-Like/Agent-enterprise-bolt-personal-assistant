@@ -343,6 +343,130 @@ export async function paRoutes(app) {
     return { goal };
   });
 
+  app.delete("/api/pa/fitness/goals/:goalId", async (request, reply) => {
+    const goals = db.pa.listFitnessGoals();
+    const existing = goals.find((g) => g.id === request.params.goalId);
+    if (!existing) return reply.code(404).send({ error: "Goal not found" });
+    db.connection.prepare(`DELETE FROM pa_fitness_goals WHERE id = ?`).run(existing.id);
+    return reply.code(204).send();
+  });
+
+  // ── Apple Watch / Health Auto Export ingestion ─────────────────────────
+  // POST /api/pa/fitness/watch/ingest  — target URL for Health Auto Export app
+  app.post("/api/pa/fitness/watch/ingest", {
+    config: { bodyLimit: 52428800 }
+  }, async (request, reply) => {
+    const body = request.body || {};
+    const data = body.data || body;
+    const workouts = Array.isArray(data.workouts) ? data.workouts : [];
+    const metrics = Array.isArray(data.metrics) ? data.metrics : [];
+
+    function normalizeDate(s) {
+      if (!s) return null;
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? s : d.toISOString();
+    }
+
+    function extractDistanceKm(w) {
+      const dist = w.distance || w.totalDistance;
+      if (!dist) return null;
+      const qty = dist.qty ?? dist;
+      const units = (dist.units || '').toLowerCase();
+      if (units.includes('mi')) return Number(qty) * 1.60934;
+      return Number(qty);
+    }
+
+    const ingestWorkouts = db.connection.transaction((workouts) => {
+      const hrRows = [];
+      const routeRows = [];
+      for (const w of workouts) {
+        if (!w.id || !w.name || !w.start) continue;
+        const row = {
+          id: w.id,
+          name: w.name,
+          start_date: normalizeDate(w.start),
+          end_date: normalizeDate(w.end),
+          duration_secs: Number(w.duration) || 0,
+          location: w.location ?? null,
+          is_indoor: w.isIndoor != null ? (w.isIndoor ? 1 : 0) : null,
+          active_energy: w.activeEnergyBurned?.qty ?? null,
+          total_energy: w.totalEnergy?.qty ?? null,
+          energy_units: w.activeEnergyBurned?.units ?? 'kcal',
+          hr_min: w.heartRate?.min ?? null,
+          hr_avg: w.heartRate?.avg ?? null,
+          hr_max: w.heartRate?.max ?? null,
+          distance_km: extractDistanceKm(w),
+          metadata_json: w.metadata ? JSON.stringify(w.metadata) : null,
+          raw_json: JSON.stringify(w),
+          ingested_at: nowIso(),
+          source: 'health-auto-export',
+        };
+        db.pa.upsertWatchWorkout(row);
+        for (const hr of (w.heartRateData || [])) {
+          hrRows.push({ workout_id: w.id, sample_date: normalizeDate(hr.date), qty: hr.qty, units: hr.units ?? 'bpm' });
+        }
+        for (const pt of (w.route || [])) {
+          routeRows.push({ workout_id: w.id, ts: normalizeDate(pt.timestamp), latitude: pt.latitude, longitude: pt.longitude, altitude: pt.altitude ?? null, speed: pt.speed ?? null, course: pt.course ?? null, horizontal_accuracy: pt.horizontalAccuracy ?? null, vertical_accuracy: pt.verticalAccuracy ?? null });
+        }
+      }
+      if (hrRows.length) db.pa.insertWatchHeartRate(hrRows);
+      if (routeRows.length) db.pa.insertWatchRoute(routeRows);
+    });
+
+    const ingestMetrics = db.connection.transaction((metrics) => {
+      const rows = [];
+      for (const m of metrics) {
+        for (const d of (m.data || [])) {
+          rows.push({ name: m.name, units: m.units ?? null, sample_date: normalizeDate(d.date), qty: d.qty ?? null, min_val: d.min ?? null, avg_val: d.avg ?? null, max_val: d.max ?? null, source: d.source ?? null });
+        }
+      }
+      if (rows.length) db.pa.upsertWatchMetrics(rows);
+    });
+
+    try {
+      ingestWorkouts(workouts);
+      ingestMetrics(metrics);
+    } catch (err) {
+      app.log.error({ err }, "watch ingest error");
+      return reply.code(500).send({ error: "Ingest failed", detail: err.message });
+    }
+
+    return reply.code(200).send({
+      ok: true,
+      workoutsReceived: workouts.length,
+      metricsReceived: metrics.length,
+    });
+  });
+
+  // GET /api/pa/fitness/watch/workouts  — list synced Apple Watch workouts
+  app.get("/api/pa/fitness/watch/workouts", async (request) => {
+    const { limit, name } = request.query;
+    const workouts = db.pa.listWatchWorkouts({ limit: limit ? Number(limit) : 50, name });
+    return { generatedAt: nowIso(), total: workouts.length, entries: workouts };
+  });
+
+  // GET /api/pa/fitness/watch/workouts/:id  — single workout with HR + route
+  app.get("/api/pa/fitness/watch/workouts/:id", async (request, reply) => {
+    const w = db.pa.getWatchWorkout(request.params.id);
+    if (!w) return reply.code(404).send({ error: "Workout not found" });
+    const heartRate = db.pa.getWatchHeartRate(w.id);
+    const route = db.pa.getWatchRoute(w.id);
+    return { workout: w, heartRate, route };
+  });
+
+  // GET /api/pa/fitness/watch/metrics — list health metrics
+  app.get("/api/pa/fitness/watch/metrics", async (request) => {
+    const { name, from, to, limit } = request.query;
+    const entries = db.pa.listWatchMetrics({ name, from, to, limit: limit ? Number(limit) : 200 });
+    return { generatedAt: nowIso(), total: entries.length, entries };
+  });
+
+  // GET /api/pa/fitness/watch/stats — summary for dashboard
+  app.get("/api/pa/fitness/watch/stats", async () => {
+    const stats = db.pa.watchStats();
+    return { generatedAt: nowIso(), ...stats };
+  });
+
   app.get("/api/pa/li/overview", async () => {
     return { generatedAt: nowIso(), ...db.li.liOverviewStats() };
   });

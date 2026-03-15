@@ -497,6 +497,69 @@ CREATE TABLE IF NOT EXISTS pa_fitness_goals (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS pa_watch_workouts (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  duration_secs REAL NOT NULL,
+  location TEXT,
+  is_indoor INTEGER,
+  active_energy REAL,
+  total_energy REAL,
+  energy_units TEXT NOT NULL DEFAULT 'kcal',
+  hr_min REAL,
+  hr_avg REAL,
+  hr_max REAL,
+  distance_km REAL,
+  metadata_json TEXT,
+  raw_json TEXT,
+  ingested_at TEXT NOT NULL DEFAULT (datetime('now')),
+  source TEXT NOT NULL DEFAULT 'health-auto-export'
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_watch_workouts_start ON pa_watch_workouts (start_date DESC);
+CREATE INDEX IF NOT EXISTS idx_pa_watch_workouts_name ON pa_watch_workouts (name);
+
+CREATE TABLE IF NOT EXISTS pa_watch_heart_rate (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workout_id TEXT NOT NULL REFERENCES pa_watch_workouts(id) ON DELETE CASCADE,
+  sample_date TEXT NOT NULL,
+  qty REAL NOT NULL,
+  units TEXT NOT NULL DEFAULT 'bpm',
+  UNIQUE(workout_id, sample_date)
+);
+
+CREATE TABLE IF NOT EXISTS pa_watch_route (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workout_id TEXT NOT NULL REFERENCES pa_watch_workouts(id) ON DELETE CASCADE,
+  ts TEXT NOT NULL,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  altitude REAL,
+  speed REAL,
+  course REAL,
+  horizontal_accuracy REAL,
+  vertical_accuracy REAL,
+  UNIQUE(workout_id, ts)
+);
+
+CREATE TABLE IF NOT EXISTS pa_watch_metrics (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  units TEXT,
+  sample_date TEXT NOT NULL,
+  qty REAL,
+  min_val REAL,
+  avg_val REAL,
+  max_val REAL,
+  source TEXT,
+  ingested_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(name, sample_date, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pa_watch_metrics_name ON pa_watch_metrics (name, sample_date);
 `;
 
 const SCHEMA = `
@@ -1669,6 +1732,54 @@ export function initControlPlaneDb(env) {
       },
       deleteFitnessLog(id) {
         connection.prepare(`DELETE FROM pa_fitness_logs WHERE id = ?`).run(id);
+      },
+      listWatchWorkouts({ limit = 50, name } = {}) {
+        const where = name ? `WHERE name = ?` : ``;
+        const args = name ? [name, limit] : [limit];
+        return connection.prepare(`SELECT * FROM pa_watch_workouts ${where} ORDER BY start_date DESC LIMIT ?`).all(...args);
+      },
+      getWatchWorkout(id) {
+        return connection.prepare(`SELECT * FROM pa_watch_workouts WHERE id = ?`).get(id) || null;
+      },
+      upsertWatchWorkout(w) {
+        connection.prepare(`INSERT OR IGNORE INTO pa_watch_workouts (id,name,start_date,end_date,duration_secs,location,is_indoor,active_energy,total_energy,energy_units,hr_min,hr_avg,hr_max,distance_km,metadata_json,raw_json,ingested_at,source) VALUES (@id,@name,@start_date,@end_date,@duration_secs,@location,@is_indoor,@active_energy,@total_energy,@energy_units,@hr_min,@hr_avg,@hr_max,@distance_km,@metadata_json,@raw_json,@ingested_at,@source)`).run(w);
+        return connection.prepare(`SELECT * FROM pa_watch_workouts WHERE id = ?`).get(w.id);
+      },
+      insertWatchHeartRate(rows) {
+        const stmt = connection.prepare(`INSERT OR IGNORE INTO pa_watch_heart_rate (workout_id,sample_date,qty,units) VALUES (@workout_id,@sample_date,@qty,@units)`);
+        const ins = connection.transaction((rows) => { for (const r of rows) stmt.run(r); });
+        ins(rows);
+      },
+      insertWatchRoute(rows) {
+        const stmt = connection.prepare(`INSERT OR IGNORE INTO pa_watch_route (workout_id,ts,latitude,longitude,altitude,speed,course,horizontal_accuracy,vertical_accuracy) VALUES (@workout_id,@ts,@latitude,@longitude,@altitude,@speed,@course,@horizontal_accuracy,@vertical_accuracy)`);
+        const ins = connection.transaction((rows) => { for (const r of rows) stmt.run(r); });
+        ins(rows);
+      },
+      upsertWatchMetrics(rows) {
+        const stmt = connection.prepare(`INSERT OR IGNORE INTO pa_watch_metrics (name,units,sample_date,qty,min_val,avg_val,max_val,source) VALUES (@name,@units,@sample_date,@qty,@min_val,@avg_val,@max_val,@source)`);
+        const ins = connection.transaction((rows) => { for (const r of rows) stmt.run(r); });
+        ins(rows);
+      },
+      getWatchHeartRate(workoutId) {
+        return connection.prepare(`SELECT * FROM pa_watch_heart_rate WHERE workout_id = ? ORDER BY sample_date ASC`).all(workoutId);
+      },
+      getWatchRoute(workoutId) {
+        return connection.prepare(`SELECT * FROM pa_watch_route WHERE workout_id = ? ORDER BY ts ASC`).all(workoutId);
+      },
+      listWatchMetrics({ name, from, to, limit = 200 } = {}) {
+        let sql = `SELECT * FROM pa_watch_metrics WHERE 1=1`;
+        const args = [];
+        if (name) { sql += ` AND name = ?`; args.push(name); }
+        if (from) { sql += ` AND sample_date >= ?`; args.push(from); }
+        if (to) { sql += ` AND sample_date <= ?`; args.push(to); }
+        sql += ` ORDER BY sample_date DESC LIMIT ?`; args.push(limit);
+        return connection.prepare(sql).all(...args);
+      },
+      watchStats() {
+        const total = connection.prepare(`SELECT COUNT(*) as c FROM pa_watch_workouts`).get()?.c || 0;
+        const lastSync = connection.prepare(`SELECT MAX(ingested_at) as t FROM pa_watch_workouts`).get()?.t || null;
+        const totalKm = connection.prepare(`SELECT COALESCE(SUM(distance_km),0) as s FROM pa_watch_workouts`).get()?.s || 0;
+        return { total, lastSync, totalKm };
       },
       listFitnessGoals() {
         return connection.prepare(`SELECT * FROM pa_fitness_goals ORDER BY created_at DESC`).all();

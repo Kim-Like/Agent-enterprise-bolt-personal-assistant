@@ -337,6 +337,7 @@
       <div class="tabs">
         <button class="tab active" data-tab="arena">Arena</button>
         <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="watch">Apple Watch</button>
       </div>
       <button class="btn btn-primary" id="log-workout-btn">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -488,6 +489,110 @@
           <div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--text-muted);">Loading achievements...</div>
         </div>
       </div>
+    </div>
+
+    <!-- TAB: APPLE WATCH -->
+    <div id="tab-watch" style="display:none">
+
+      <!-- SYNC STATUS BANNER -->
+      <div id="watch-sync-banner" style="background:var(--surface);border:1px solid var(--border-bright);border-radius:var(--radius);padding:18px 22px;display:flex;align-items:center;gap:16px;margin-bottom:0;">
+        <div style="font-size:32px;">⌚</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:800;color:var(--text-primary);margin-bottom:3px;">Apple Watch Sync</div>
+          <div style="font-size:12.5px;color:var(--text-secondary);" id="watch-sync-status">Loading sync status...</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--green-light);" id="watch-total-workouts">--</div>
+          <div style="font-size:10.5px;color:var(--text-muted);">workouts synced</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--gold);" id="watch-total-km">--</div>
+          <div style="font-size:10.5px;color:var(--text-muted);">km from watch</div>
+        </div>
+      </div>
+
+      <!-- SETUP GUIDE + ENDPOINT CARD -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="font-size:13px;font-weight:800;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+            <span>📱</span> Setup — Health Auto Export
+          </div>
+          <ol style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;padding-left:18px;display:flex;flex-direction:column;gap:4px;">
+            <li>Install <strong style="color:var(--text-primary);">Health Auto Export</strong> on your iPhone (App Store, Premium required)</li>
+            <li>Open the app → tap <strong style="color:var(--text-primary);">Automations</strong> → <strong style="color:var(--text-primary);">+ New</strong></li>
+            <li>Select <strong style="color:var(--text-primary);">REST API</strong> as the export type</li>
+            <li>Paste the webhook URL shown below into the URL field</li>
+            <li>Set Method to <strong style="color:var(--text-primary);">POST</strong>, Format to <strong style="color:var(--text-primary);">JSON</strong>, Version to <strong style="color:var(--text-primary);">V2</strong></li>
+            <li>Enable <strong style="color:var(--text-primary);">Workouts</strong> and optionally <strong style="color:var(--text-primary);">Metrics</strong></li>
+            <li>Set Schedule: <strong style="color:var(--text-primary);">Every 1 hour</strong> or <strong style="color:var(--text-primary);">On Charge</strong></li>
+            <li>Tap <strong style="color:var(--text-primary);">Save</strong> and run once manually to test</li>
+          </ol>
+          <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:8px;padding:10px 12px;font-size:12px;color:#22C55E;">
+            Tip: Enable "Include Route" and "Include Heart Rate Data" in the workout options for full XP bonuses.
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="font-size:13px;font-weight:800;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+            <span>🔗</span> Your Webhook Endpoint
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">POST URL</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--canvas);border:1px solid var(--border-bright);border-radius:7px;padding:8px 10px;color:var(--green-light);flex:1;word-break:break-all;" id="webhook-url-display">loading...</code>
+              <button class="btn btn-ghost btn-sm" id="copy-webhook-btn" title="Copy URL" style="flex-shrink:0;">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Auth Header (optional)</div>
+            <code style="font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--canvas);border:1px solid var(--border-bright);border-radius:7px;padding:8px 10px;color:var(--text-secondary);display:block;">Authorization: Bearer &lt;your-token&gt;</code>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Set <code style="font-family:monospace;">API_TOKEN</code> env var on the server to enable token auth.</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Test with curl</div>
+            <code id="curl-example" style="font-family:'JetBrains Mono',monospace;font-size:10.5px;background:var(--canvas);border:1px solid var(--border-bright);border-radius:7px;padding:8px 10px;color:var(--text-secondary);display:block;white-space:pre-wrap;word-break:break-all;line-height:1.5;">loading...</code>
+          </div>
+          <button class="btn btn-primary" id="test-ingest-btn" style="align-self:flex-start;">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Send Test Workout
+          </button>
+        </div>
+      </div>
+
+      <!-- ALTERNATIVE: iOS SHORTCUTS -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;">
+        <div style="font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:10px;display:flex;align-items:center;gap:8px;"><span>⚡</span> Alternative: iOS Shortcuts (Free)</div>
+        <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px;">
+          No third-party app needed. Use the built-in <strong style="color:var(--text-primary);">Shortcuts</strong> app to POST workout data directly to this server.
+        </div>
+        <div style="background:var(--canvas);border:1px solid var(--border-bright);border-radius:9px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary);line-height:1.7;" id="shortcut-payload-example">
+          Shortcut Actions:<br>
+          1. Get Workouts (Health → Workouts, Last 1 Day)<br>
+          2. Set Variable "payload" to Dictionary:<br>
+          &nbsp;&nbsp;&nbsp;data → { workouts: [{ id, name, start, end, duration, ... }] }<br>
+          3. Get Contents of URL → POST <span id="shortcut-url">loading...</span><br>
+          &nbsp;&nbsp;&nbsp;Headers: Content-Type: application/json<br>
+          &nbsp;&nbsp;&nbsp;Body: JSON → Variable "payload"<br>
+          4. Schedule: Run daily at midnight
+        </div>
+      </div>
+
+      <!-- SYNCED WORKOUTS TABLE -->
+      <div class="log-card">
+        <div class="log-card-header">
+          <div class="log-card-title"><span>⌚</span> Synced Apple Watch Workouts</div>
+          <button class="btn btn-ghost btn-sm" id="refresh-watch-btn">Refresh</button>
+        </div>
+        <div class="log-card-body">
+          <table>
+            <thead><tr><th>Workout</th><th>Distance</th><th>Duration</th><th>HR Avg</th><th>Energy</th><th>Date</th><th>XP</th></tr></thead>
+            <tbody id="watch-tbody"><tr><td colspan="7" class="empty-state">Loading Apple Watch workouts...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <!-- TAB: HISTORY -->
@@ -1168,16 +1273,6 @@ async function deleteLog(id) {
 
 // ========== EVENT WIRING ==========
 
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('tab-arena').style.display = tab.dataset.tab === 'arena' ? '' : 'none';
-    document.getElementById('tab-history').style.display = tab.dataset.tab === 'history' ? '' : 'none';
-    if (tab.dataset.tab === 'history') setTimeout(drawXpChart, 50);
-  });
-});
-
 function openModal() {
   document.getElementById('w-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('log-modal').classList.add('open');
@@ -1226,6 +1321,156 @@ document.addEventListener('keydown', e => {
 
 window.addEventListener('resize', () => {
   if (document.getElementById('tab-history').style.display !== 'none') drawXpChart();
+});
+
+// ========== APPLE WATCH TAB ==========
+
+function watchXpForWorkout(w) {
+  let xp = 0;
+  const km = Number(w.distance_km) || 0;
+  const min = Math.round((Number(w.duration_secs) || 0) / 60);
+  xp += Math.round(km * 15);
+  xp += Math.round(min * 0.5);
+  if (w.hr_avg && w.hr_avg > 140) xp += 20;
+  const name = (w.name || '').toLowerCase();
+  if (name.includes('strength') || name.includes('functional')) xp += 30;
+  return Math.max(10, xp);
+}
+
+function fmtSecs(s) {
+  if (!s) return '--';
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+}
+
+function watchActivityBadge(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('run')) return `<span class="activity-badge act-run">🏃 ${escHtml(name)}</span>`;
+  if (n.includes('strength') || n.includes('functional') || n.includes('weight')) return `<span class="activity-badge act-barbells">🏋️ ${escHtml(name)}</span>`;
+  if (n.includes('sauna') || n.includes('hot')) return `<span class="activity-badge act-sauna">🔥 ${escHtml(name)}</span>`;
+  if (n.includes('cycle') || n.includes('bike') || n.includes('indoor bike')) return `<span class="activity-badge act-gym">🚴 ${escHtml(name)}</span>`;
+  if (n.includes('swim')) return `<span class="activity-badge act-weights">🏊 ${escHtml(name)}</span>`;
+  return `<span class="activity-badge act-other">⌚ ${escHtml(name)}</span>`;
+}
+
+async function loadWatchData() {
+  const baseUrl = window.location.origin;
+  const webhookUrl = `${baseUrl}/api/pa/fitness/watch/ingest`;
+
+  document.getElementById('webhook-url-display').textContent = webhookUrl;
+  document.getElementById('shortcut-url').textContent = webhookUrl;
+  document.getElementById('curl-example').textContent =
+    `curl -X POST "${webhookUrl}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"data":{"workouts":[{"id":"test-001","name":"Running","start":"${new Date().toISOString()}","end":"${new Date().toISOString()}","duration":1800,"distance":{"qty":5.0,"units":"km"},"heartRate":{"min":95,"avg":148,"max":175}}],"metrics":[]}}'`;
+
+  try {
+    const [statsRes, workoutsRes] = await Promise.all([
+      fetch('/api/pa/fitness/watch/stats'),
+      fetch('/api/pa/fitness/watch/workouts?limit=50'),
+    ]);
+
+    const stats = statsRes.ok ? await statsRes.json() : {};
+    const workoutsData = workoutsRes.ok ? await workoutsRes.json() : {};
+    const workouts = workoutsData.entries || [];
+
+    document.getElementById('watch-total-workouts').textContent = stats.total ?? 0;
+    document.getElementById('watch-total-km').textContent = Number(stats.totalKm || 0).toFixed(1);
+
+    if (stats.lastSync) {
+      document.getElementById('watch-sync-status').textContent =
+        `Last synced: ${new Date(stats.lastSync).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })} · Via Health Auto Export`;
+    } else {
+      document.getElementById('watch-sync-status').textContent = 'No workouts synced yet — configure Health Auto Export to get started.';
+    }
+
+    const tbody = document.getElementById('watch-tbody');
+    if (workouts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No Apple Watch workouts synced yet. Follow the setup guide above.</td></tr>';
+    } else {
+      tbody.innerHTML = workouts.map(w => {
+        const xp = watchXpForWorkout(w);
+        const km = w.distance_km ? `${Number(w.distance_km).toFixed(2)} km` : '--';
+        const dur = fmtSecs(w.duration_secs);
+        const hr = w.hr_avg ? `${Math.round(w.hr_avg)} bpm` : '--';
+        const kcal = w.active_energy ? `${Math.round(w.active_energy)} kcal` : '--';
+        const date = fmtDate(w.start_date);
+        return `<tr>
+          <td>${watchActivityBadge(w.name)}</td>
+          <td class="mono">${km}</td>
+          <td class="mono">${dur}</td>
+          <td class="mono">${hr}</td>
+          <td class="mono">${kcal}</td>
+          <td class="mono">${date}</td>
+          <td><span class="xp-chip">+${xp}</span></td>
+        </tr>`;
+      }).join('');
+    }
+  } catch(e) {
+    document.getElementById('watch-sync-status').textContent = 'Could not load sync data.';
+  }
+}
+
+document.getElementById('copy-webhook-btn').addEventListener('click', () => {
+  const url = document.getElementById('webhook-url-display').textContent;
+  navigator.clipboard.writeText(url).then(() => showToast('Webhook URL copied!'));
+});
+
+document.getElementById('refresh-watch-btn').addEventListener('click', loadWatchData);
+
+document.getElementById('test-ingest-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('test-ingest-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  const now = new Date();
+  const start = new Date(now - 30 * 60000).toISOString();
+  const payload = {
+    data: {
+      workouts: [{
+        id: `test-${Date.now()}`,
+        name: 'Running',
+        start,
+        end: now.toISOString(),
+        duration: 1800,
+        distance: { qty: 5.0, units: 'km' },
+        heartRate: { min: 95, avg: 148, max: 175, units: 'bpm' },
+        activeEnergyBurned: { qty: 380, units: 'kcal' },
+      }],
+      metrics: [],
+    }
+  };
+  try {
+    const res = await fetch('/api/pa/fitness/watch/ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const j = await res.json();
+    if (res.ok) {
+      showToast('Test workout sent successfully!', true);
+      loadWatchData();
+    } else {
+      showToast(`Ingest error: ${j.error || 'unknown'}`);
+    }
+  } catch(e) {
+    showToast('Request failed. Is the server running?');
+  }
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Send Test Workout`;
+});
+
+// ========== TABS (extended) ==========
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const id = tab.dataset.tab;
+    document.getElementById('tab-arena').style.display = id === 'arena' ? '' : 'none';
+    document.getElementById('tab-history').style.display = id === 'history' ? '' : 'none';
+    document.getElementById('tab-watch').style.display = id === 'watch' ? '' : 'none';
+    if (id === 'history') setTimeout(drawXpChart, 50);
+    if (id === 'watch') loadWatchData();
+  });
 });
 
 // BOOT
