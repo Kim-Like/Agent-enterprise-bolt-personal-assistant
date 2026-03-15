@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PA — Dashboard</title>
+  <title>PA — Command Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -20,425 +20,169 @@
       --canvas: #F8FAFC;
       --card: #FFFFFF;
       --border: #E2E8F0;
+      --border-bright: #CBD5E1;
       --text-primary: #0F172A;
       --text-secondary: #475569;
       --text-muted: #94A3B8;
       --sidebar-width: 240px;
-      --radius: 20px;
+      --radius: 16px;
       --radius-sm: 10px;
+      --blue: #3B82F6;
+      --amber: #F59E0B;
+      --green: #10B981;
+      --red: #EF4444;
+      --rose: #F43F5E;
     }
 
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background: var(--canvas);
-      color: var(--text-primary);
-      display: flex;
-      min-height: 100vh;
-    }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--canvas); color: var(--text-primary); display: flex; min-height: 100vh; }
 
-    /* ── Sidebar ── */
-    .sidebar {
-      width: var(--sidebar-width);
-      min-height: 100vh;
-      background: var(--shell);
-      display: flex;
-      flex-direction: column;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
-      flex-shrink: 0;
-    }
-
-    .sidebar-logo {
-      padding: 28px 20px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .sidebar-logo span {
-      font-size: 18px;
-      font-weight: 700;
-      color: #FFFFFF;
-      letter-spacing: -0.3px;
-    }
-
-    .sidebar-logo small {
-      display: block;
-      font-size: 11px;
-      color: rgba(255,255,255,0.45);
-      margin-top: 2px;
-      font-weight: 400;
-    }
-
-    .sidebar-nav {
-      flex: 1;
-      padding: 16px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .sidebar-nav a {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 12px;
-      border-radius: 10px;
-      color: rgba(255,255,255,0.65);
-      text-decoration: none;
-      font-size: 13.5px;
-      font-weight: 500;
-      transition: background 0.15s, color 0.15s;
-      position: relative;
-    }
-
-    .sidebar-nav a:hover {
-      background: rgba(255,255,255,0.08);
-      color: #FFFFFF;
-    }
-
-    .sidebar-nav a.active {
-      background: rgba(20,184,166,0.18);
-      color: #FFFFFF;
-    }
-
-    .sidebar-nav a .icon {
-      width: 18px;
-      height: 18px;
-      opacity: 0.8;
-      flex-shrink: 0;
-    }
-
+    .sidebar { width: var(--sidebar-width); min-height: 100vh; background: var(--shell); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+    .sidebar-logo { padding: 28px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-logo span { font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.3px; }
+    .sidebar-logo small { display: block; font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; font-weight: 400; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: rgba(255,255,255,0.65); text-decoration: none; font-size: 13.5px; font-weight: 500; transition: background 0.15s, color 0.15s; position: relative; }
+    .sidebar-nav a:hover { background: rgba(255,255,255,0.08); color: #FFFFFF; }
+    .sidebar-nav a.active { background: rgba(20,184,166,0.18); color: #FFFFFF; }
+    .sidebar-nav a .icon { width: 18px; height: 18px; opacity: 0.8; flex-shrink: 0; }
     .sidebar-nav a.active .icon { opacity: 1; }
+    .nav-badge { margin-left: auto; background: var(--accent-light); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 20px; min-width: 18px; text-align: center; }
+    .nav-badge.red { background: var(--red); }
+    .sidebar-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 8px 12px; }
+    .sidebar-back { padding: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-back a { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.45); text-decoration: none; font-size: 12.5px; padding: 8px 12px; border-radius: 8px; transition: color 0.15s, background 0.15s; }
+    .sidebar-back a:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }
 
-    .nav-badge {
-      margin-left: auto;
-      background: var(--accent-light);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 20px;
-      min-width: 18px;
-      text-align: center;
-    }
+    .main { flex: 1; overflow-x: hidden; min-width: 0; }
+    .page-header { padding: 36px 40px 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+    .page-title { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; line-height: 1.2; }
+    .page-content { padding: 24px 40px 56px; display: flex; flex-direction: column; gap: 28px; }
 
-    .sidebar-divider {
-      height: 1px;
-      background: rgba(255,255,255,0.08);
-      margin: 8px 12px;
-    }
+    .refresh-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1.5px solid var(--border); background: var(--card); color: var(--text-secondary); transition: all 0.15s; }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--surface-tint); }
 
-    .sidebar-back {
-      padding: 12px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
+    .section-heading { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 12px; }
 
-    .sidebar-back a {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: rgba(255,255,255,0.45);
-      text-decoration: none;
-      font-size: 12.5px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      transition: color 0.15s, background 0.15s;
-    }
+    /* Briefing */
+    .briefing-bar { background: linear-gradient(135deg, var(--shell) 0%, #1a6b63 100%); border-radius: var(--radius); padding: 16px 22px; display: flex; align-items: center; gap: 14px; }
+    .briefing-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-light); flex-shrink: 0; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .briefing-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+    .briefing-text { font-size: 13.5px; color: rgba(255,255,255,0.9); line-height: 1.5; }
+    .briefing-time { font-size: 11.5px; font-family: 'JetBrains Mono', monospace; color: rgba(255,255,255,0.4); flex-shrink: 0; margin-left: auto; white-space: nowrap; }
 
-    .sidebar-back a:hover {
-      color: rgba(255,255,255,0.8);
-      background: rgba(255,255,255,0.06);
-    }
+    /* KPI Grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
+    .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 8px; transition: box-shadow 0.15s, border-color 0.15s; cursor: default; }
+    .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); border-color: var(--border-bright); }
+    .kpi-card.alert { border-color: #FECACA; background: #FFF5F5; }
+    .kpi-card.alert .kpi-value { color: var(--red); }
+    .kpi-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--surface-tint); display: flex; align-items: center; justify-content: center; }
+    .kpi-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 26px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); line-height: 1; }
+    .kpi-sub { font-size: 11px; color: var(--text-muted); }
 
-    /* ── Main Content ── */
-    .main {
-      flex: 1;
-      overflow-x: hidden;
-      min-width: 0;
-    }
+    /* Module panels grid */
+    .panels-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .panels-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-    .page-header {
-      padding: 40px 40px 0;
-    }
-
-    .eyebrow {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 6px;
-    }
-
-    .page-title {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.5px;
-      line-height: 1.2;
-    }
-
-    .page-content {
-      padding: 32px 40px 48px;
-      display: flex;
-      flex-direction: column;
-      gap: 32px;
-    }
-
-    /* ── Stat Cards ── */
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
-    }
-
-    .stat-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 24px 20px;
-      border: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: box-shadow 0.15s;
-    }
-
-    .stat-card:hover {
-      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
-    }
-
-    .stat-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .stat-value {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text-primary);
-      font-family: 'JetBrains Mono', monospace;
-      line-height: 1;
-    }
-
-    .stat-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: var(--surface-tint);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .stat-icon svg { color: var(--accent); }
-
-    /* ── Module Grid ── */
-    .section-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 14px;
-    }
-
-    .module-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 14px;
-    }
-
-    .module-tile {
-      background: var(--card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      padding: 20px;
-      text-decoration: none;
-      color: var(--text-primary);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      transition: box-shadow 0.15s, border-color 0.15s;
-      text-align: center;
-    }
-
-    .module-tile:hover {
-      box-shadow: 0 4px 16px rgba(15,118,110,0.12);
-      border-color: var(--accent-light);
-    }
-
-    .module-tile-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      background: var(--surface-tint);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .module-tile-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .module-tile-status {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--accent);
-      background: var(--surface-tint);
-      padding: 2px 8px;
-      border-radius: 20px;
-    }
-
-    /* ── Two-panel section ── */
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .panel-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
-
-    .panel-header {
-      padding: 18px 22px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .panel-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-
-    .panel-link {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--accent);
-      text-decoration: none;
-    }
-
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+    .panel-head { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-title { font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 7px; }
+    .panel-title-icon { font-size: 14px; }
+    .panel-link { font-size: 11.5px; font-weight: 600; color: var(--accent); text-decoration: none; }
     .panel-link:hover { text-decoration: underline; }
+    .panel-body { flex: 1; }
+    .panel-empty { padding: 24px 18px; text-align: center; color: var(--text-muted); font-size: 12.5px; }
+    .panel-footer { padding: 10px 18px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-footer-stat { font-size: 11.5px; color: var(--text-muted); }
+    .panel-footer-stat strong { color: var(--text-secondary); }
 
-    .panel-body {
-      padding: 8px 0;
+    /* List rows */
+    .row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: #F8FAFC; }
+    .row-main { flex: 1; min-width: 0; }
+    .row-title { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+    .row-badge { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+    .badge-high { background: #FEE2E2; color: #DC2626; }
+    .badge-medium { background: #FEF3C7; color: #D97706; }
+    .badge-low { background: #DCFCE7; color: #16A34A; }
+    .badge-todo { background: #DBEAFE; color: #1D4ED8; }
+    .badge-inprog { background: #FEF3C7; color: #D97706; }
+    .badge-done { background: #DCFCE7; color: #16A34A; }
+    .badge-draft { background: #F1F5F9; color: var(--text-secondary); }
+    .badge-pending { background: #FEF3C7; color: #D97706; }
+    .badge-active { background: #DCFCE7; color: #16A34A; }
+    .badge-error { background: #FEE2E2; color: #DC2626; }
+    .badge-watch { background: #EFF6FF; color: #1D4ED8; }
+
+    /* Date block */
+    .date-block { width: 36px; text-align: center; flex-shrink: 0; }
+    .date-block .d { font-size: 17px; font-weight: 800; color: var(--accent); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+    .date-block .m { font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Email accounts list */
+    .email-row { display: flex; align-items: center; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--border); }
+    .email-row:last-child { border-bottom: none; }
+    .email-avatar { width: 28px; height: 28px; border-radius: 8px; background: var(--surface-tint); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+    .email-address { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); margin-top: 1px; }
+    .email-label { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+
+    /* Fitness row */
+    .fitness-row { display: flex; align-items: center; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--border); }
+    .fitness-row:last-child { border-bottom: none; }
+    .fitness-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--surface-tint); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .fitness-main { flex: 1; min-width: 0; }
+    .fitness-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+    .fitness-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+    .fitness-val { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); flex-shrink: 0; }
+
+    /* LinkedIn mini-panel */
+    .li-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+    .li-stat { background: var(--card); padding: 14px 18px; }
+    .li-stat-val { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); line-height: 1; }
+    .li-stat-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    /* Investment summary */
+    .inv-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+    .inv-row:last-child { border-bottom: none; }
+    .inv-label { font-size: 13px; color: var(--text-secondary); }
+    .inv-val { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); }
+
+    /* skeleton */
+    .skel { background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .module-nav { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+    .mod-tile { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-decoration: none; color: var(--text-primary); display: flex; flex-direction: column; align-items: center; gap: 8px; transition: box-shadow 0.15s, border-color 0.15s; text-align: center; }
+    .mod-tile:hover { box-shadow: 0 4px 12px rgba(15,118,110,0.1); border-color: var(--accent-light); }
+    .mod-tile-icon { width: 38px; height: 38px; border-radius: 12px; background: var(--surface-tint); display: flex; align-items: center; justify-content: center; }
+    .mod-tile-name { font-size: 11.5px; font-weight: 700; color: var(--text-primary); }
+    .mod-tile-count { font-size: 10.5px; color: var(--text-muted); }
+
+    @media (max-width: 1300px) {
+      .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+      .panels-grid { grid-template-columns: 1fr 1fr; }
+      .module-nav { grid-template-columns: repeat(4, 1fr); }
     }
-
-    .list-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 22px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.12s;
-    }
-
-    .list-item:last-child { border-bottom: none; }
-    .list-item:hover { background: #F8FAFC; }
-
-    .list-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .dot-todo { background: #3B82F6; }
-    .dot-in-progress { background: #F59E0B; }
-    .dot-done { background: #10B981; }
-
-    .list-text {
-      flex: 1;
-      font-size: 13.5px;
-      color: var(--text-primary);
-      font-weight: 500;
-    }
-
-    .list-sub {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .priority-badge {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    .priority-high { background: #FEE2E2; color: #DC2626; }
-    .priority-medium { background: #FEF3C7; color: #D97706; }
-    .priority-low { background: #DCFCE7; color: #16A34A; }
-
-    .date-block {
-      width: 40px;
-      text-align: center;
-      flex-shrink: 0;
-    }
-
-    .date-block .day {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--accent);
-      font-family: 'JetBrains Mono', monospace;
-      line-height: 1;
-    }
-
-    .date-block .month {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .empty-state {
-      padding: 32px 22px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-
-    /* Loading skeleton */
-    .skeleton {
-      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: 6px;
-    }
-
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
+    @media (max-width: 900px) {
+      .page-header, .page-content { padding-left: 20px; padding-right: 20px; }
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .panels-grid, .panels-grid-2 { grid-template-columns: 1fr; }
+      .module-nav { grid-template-columns: repeat(3, 1fr); }
     }
   </style>
 </head>
 <body>
 
-<!-- ── Sidebar ── -->
 <aside class="sidebar">
   <div class="sidebar-logo">
     <span>Personal Assistant</span>
     <small>Command Center</small>
   </div>
-
   <nav class="sidebar-nav">
     <a href="/pa" class="active">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -457,6 +201,7 @@
     <a href="/pa/email">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
       Email
+      <span class="nav-badge" id="nav-email-badge">0</span>
     </a>
     <a href="/pa/social">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
@@ -472,7 +217,6 @@
     </a>
     <div class="sidebar-divider"></div>
   </nav>
-
   <div class="sidebar-back">
     <a href="/">
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -481,125 +225,210 @@
   </div>
 </aside>
 
-<!-- ── Main ── -->
 <main class="main">
   <div class="page-header">
-    <p class="eyebrow">Personal ops suite</p>
-    <h1 class="page-title">Your daily command center.</h1>
+    <div>
+      <p class="eyebrow">Personal ops suite</p>
+      <h1 class="page-title">Command Center</h1>
+    </div>
+    <button class="refresh-btn" id="refresh-btn">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Refresh
+    </button>
   </div>
 
   <div class="page-content">
 
     <!-- Daily Briefing -->
-    <div id="briefing-wrap" style="display:none;margin-bottom:20px;padding:14px 18px;border-radius:12px;background:var(--accent-tint,#F0FDFA);border:1px solid var(--accent-border,#99F6E4);color:var(--accent-dark,#134E4A);font-size:14px;line-height:1.6;">
-      <span style="font-weight:600;margin-right:8px;">Today</span><span id="briefing-text"></span>
-    </div>
-
-    <!-- Stat Cards -->
-    <div>
-      <p class="section-label">Overview</p>
-      <div class="stat-grid" id="stat-grid">
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" color="#0F766E"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          </div>
-          <div class="stat-label">Open Tasks</div>
-          <div class="stat-value skeleton" id="stat-tasks" style="width:48px;height:36px;">&nbsp;</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" color="#0F766E"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          </div>
-          <div class="stat-label">Upcoming Events</div>
-          <div class="stat-value skeleton" id="stat-events" style="width:48px;height:36px;">&nbsp;</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" color="#0F766E"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-          </div>
-          <div class="stat-label">Social Drafts</div>
-          <div class="stat-value skeleton" id="stat-drafts" style="width:48px;height:36px;">&nbsp;</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" color="#0F766E"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          </div>
-          <div class="stat-label">Fitness Logs (week)</div>
-          <div class="stat-value skeleton" id="stat-fitness" style="width:48px;height:36px;">&nbsp;</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" color="#0F766E"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-          </div>
-          <div class="stat-label">Email Accounts</div>
-          <div class="stat-value skeleton" id="stat-email" style="width:48px;height:36px;">&nbsp;</div>
-        </div>
+    <div class="briefing-bar" id="briefing-wrap" style="display:none;">
+      <div class="briefing-dot"></div>
+      <div>
+        <div class="briefing-label">Today</div>
+        <div class="briefing-text" id="briefing-text"></div>
       </div>
+      <div class="briefing-time" id="briefing-time"></div>
     </div>
 
-    <!-- Module Grid -->
+    <!-- Module navigation -->
     <div>
-      <p class="section-label">Modules</p>
-      <div class="module-grid">
-        <a href="/pa/tasks" class="module-tile">
-          <div class="module-tile-icon">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          </div>
-          <div class="module-tile-name">Tasks</div>
-          <div class="module-tile-status">Active</div>
+      <div class="section-heading">Modules</div>
+      <div class="module-nav">
+        <a href="/pa/tasks" class="mod-tile">
+          <div class="mod-tile-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+          <div class="mod-tile-name">Tasks</div>
+          <div class="mod-tile-count" id="mod-tasks-count">—</div>
         </a>
-        <a href="/pa/calendar" class="module-tile">
-          <div class="module-tile-icon">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          </div>
-          <div class="module-tile-name">Calendar</div>
-          <div class="module-tile-status">Active</div>
+        <a href="/pa/calendar" class="mod-tile">
+          <div class="mod-tile-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <div class="mod-tile-name">Calendar</div>
+          <div class="mod-tile-count" id="mod-cal-count">—</div>
         </a>
-        <a href="/pa/email" class="module-tile">
-          <div class="module-tile-icon">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-          </div>
-          <div class="module-tile-name">Email</div>
-          <div class="module-tile-status">Active</div>
+        <a href="/pa/email" class="mod-tile">
+          <div class="mod-tile-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
+          <div class="mod-tile-name">Email</div>
+          <div class="mod-tile-count" id="mod-email-count">—</div>
         </a>
-        <a href="/pa/social" class="module-tile">
-          <div class="module-tile-icon">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-          </div>
-          <div class="module-tile-name">Social</div>
-          <div class="module-tile-status">Active</div>
+        <a href="/pa/social" class="mod-tile">
+          <div class="mod-tile-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></div>
+          <div class="mod-tile-name">Social</div>
+          <div class="mod-tile-count" id="mod-social-count">—</div>
         </a>
-        <a href="/pa/fitness" class="module-tile">
-          <div class="module-tile-icon">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          </div>
-          <div class="module-tile-name">Fitness</div>
-          <div class="module-tile-status">Active</div>
+        <a href="/pa/fitness" class="mod-tile">
+          <div class="mod-tile-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+          <div class="mod-tile-name">Fitness</div>
+          <div class="mod-tile-count" id="mod-fitness-count">—</div>
+        </a>
+        <a href="/pa/investment" class="mod-tile">
+          <div class="mod-tile-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+          <div class="mod-tile-name">Investment</div>
+          <div class="mod-tile-count" id="mod-inv-count">—</div>
+        </a>
+        <a href="/pa/linkedin" class="mod-tile">
+          <div class="mod-tile-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div>
+          <div class="mod-tile-name">LinkedIn</div>
+          <div class="mod-tile-count" id="mod-li-count">—</div>
         </a>
       </div>
     </div>
 
-    <!-- Two panels -->
-    <div class="two-col">
-      <!-- Open Tasks Panel -->
-      <div class="panel-card">
-        <div class="panel-header">
-          <span class="panel-title">Open Tasks</span>
+    <!-- KPI Row -->
+    <div>
+      <div class="section-heading">Key metrics</div>
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card" id="kpi-open-tasks">
+          <div class="kpi-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg></div>
+          <div class="kpi-label">Open tasks</div>
+          <div class="kpi-value skel" id="v-open-tasks" style="width:48px;height:32px;">&nbsp;</div>
+          <div class="kpi-sub" id="s-open-tasks">loading</div>
+        </div>
+        <div class="kpi-card" id="kpi-overdue">
+          <div class="kpi-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+          <div class="kpi-label">Overdue</div>
+          <div class="kpi-value skel" id="v-overdue" style="width:48px;height:32px;">&nbsp;</div>
+          <div class="kpi-sub" id="s-overdue">tasks past due</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <div class="kpi-label">Events today</div>
+          <div class="kpi-value skel" id="v-cal-today" style="width:48px;height:32px;">&nbsp;</div>
+          <div class="kpi-sub" id="s-cal-next">loading</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
+          <div class="kpi-label">Mailboxes</div>
+          <div class="kpi-value skel" id="v-email" style="width:48px;height:32px;">&nbsp;</div>
+          <div class="kpi-sub" id="s-email">loading</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></div>
+          <div class="kpi-label">Social drafts</div>
+          <div class="kpi-value skel" id="v-social" style="width:48px;height:32px;">&nbsp;</div>
+          <div class="kpi-sub" id="s-social">loading</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+          <div class="kpi-label">Workouts / 7d</div>
+          <div class="kpi-value skel" id="v-fitness" style="width:48px;height:32px;">&nbsp;</div>
+          <div class="kpi-sub" id="s-fitness">loading</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#0F766E" stroke-width="2"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div>
+          <div class="kpi-label">LI profiles</div>
+          <div class="kpi-value skel" id="v-li" style="width:48px;height:32px;">&nbsp;</div>
+          <div class="kpi-sub" id="s-li">loading</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top panels row: Tasks + Calendar + Email -->
+    <div class="panels-grid">
+
+      <!-- Tasks -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><span class="panel-title-icon">📋</span> Open Tasks</div>
           <a href="/pa/tasks" class="panel-link">View all</a>
         </div>
-        <div class="panel-body" id="tasks-list">
-          <div class="empty-state">Loading tasks...</div>
+        <div class="panel-body" id="tasks-panel">
+          <div class="panel-empty">Loading...</div>
+        </div>
+        <div class="panel-footer">
+          <span class="panel-footer-stat" id="tasks-footer">—</span>
+          <span class="panel-footer-stat" id="tasks-overdue-footer" style="color:var(--red);display:none;">— overdue</span>
         </div>
       </div>
 
-      <!-- Upcoming Events Panel -->
-      <div class="panel-card">
-        <div class="panel-header">
-          <span class="panel-title">Upcoming Events</span>
+      <!-- Calendar -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><span class="panel-title-icon">📅</span> Upcoming Events</div>
           <a href="/pa/calendar" class="panel-link">View all</a>
         </div>
-        <div class="panel-body" id="events-list">
-          <div class="empty-state">Loading events...</div>
+        <div class="panel-body" id="calendar-panel">
+          <div class="panel-empty">Loading...</div>
+        </div>
+        <div class="panel-footer">
+          <span class="panel-footer-stat" id="calendar-footer">—</span>
+        </div>
+      </div>
+
+      <!-- Email Accounts -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><span class="panel-title-icon">📬</span> Mailboxes</div>
+          <a href="/pa/email" class="panel-link">Manage</a>
+        </div>
+        <div class="panel-body" id="email-panel">
+          <div class="panel-empty">Loading...</div>
+        </div>
+        <div class="panel-footer">
+          <span class="panel-footer-stat" id="email-footer">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second row: Fitness + LinkedIn + Investment -->
+    <div class="panels-grid">
+
+      <!-- Fitness -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><span class="panel-title-icon">⚡</span> Fitness</div>
+          <a href="/pa/fitness" class="panel-link">Arena</a>
+        </div>
+        <div class="panel-body" id="fitness-panel">
+          <div class="panel-empty">Loading...</div>
+        </div>
+        <div class="panel-footer">
+          <span class="panel-footer-stat" id="fitness-footer">—</span>
+        </div>
+      </div>
+
+      <!-- LinkedIn -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><span class="panel-title-icon">🔗</span> LinkedIn CRM</div>
+          <a href="/pa/linkedin" class="panel-link">View all</a>
+        </div>
+        <div class="panel-body" id="li-panel">
+          <div class="panel-empty">Loading...</div>
+        </div>
+        <div class="panel-footer">
+          <span class="panel-footer-stat" id="li-footer">—</span>
+        </div>
+      </div>
+
+      <!-- Investment -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><span class="panel-title-icon">📈</span> Investment</div>
+          <a href="/pa/investment" class="panel-link">Portfolio</a>
+        </div>
+        <div class="panel-body" id="inv-panel">
+          <div class="panel-empty">Loading...</div>
+        </div>
+        <div class="panel-footer">
+          <span class="panel-footer-stat" id="inv-footer">—</span>
         </div>
       </div>
     </div>
@@ -610,90 +439,271 @@
 <script>
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  function setStat(id, value) {
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function setVal(id, val) {
     const el = document.getElementById(id);
-    el.textContent = value;
-    el.classList.remove('skeleton');
+    if (!el) return;
+    el.textContent = val;
+    el.classList.remove('skel');
     el.style.width = '';
     el.style.height = '';
   }
 
-  function renderTasks(tasks) {
-    const el = document.getElementById('tasks-list');
-    if (!tasks || tasks.length === 0) {
-      el.innerHTML = '<div class="empty-state">No open tasks.</div>';
-      return;
-    }
-    el.innerHTML = tasks.map(t => {
-      const dotClass = t.status === 'todo' ? 'dot-todo' : t.status === 'in_progress' ? 'dot-in-progress' : 'dot-done';
-      const prioClass = t.priority === 'high' ? 'priority-high' : t.priority === 'low' ? 'priority-low' : 'priority-medium';
-      const due = t.due_date ? `<span class="list-sub">${t.due_date}</span>` : '';
-      return `<div class="list-item">
-        <span class="list-dot ${dotClass}"></span>
-        <span class="list-text">${escHtml(t.title)}</span>
-        ${due}
-        <span class="priority-badge ${prioClass}">${t.priority || 'med'}</span>
-      </div>`;
-    }).join('');
+  function setSub(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
   }
 
-  function renderEvents(events) {
-    const el = document.getElementById('events-list');
+  function statusBadge(s) {
+    const map = { pending: 'badge-pending', active: 'badge-active', error: 'badge-error' };
+    return `<span class="row-badge ${map[s]||'badge-pending'}">${esc(s)}</span>`;
+  }
+
+  function priorityBadge(p) {
+    const map = { high: 'badge-high', medium: 'badge-medium', low: 'badge-low' };
+    return `<span class="row-badge ${map[p]||'badge-medium'}">${esc(p||'med')}</span>`;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '--';
+    const d = new Date(iso);
+    return isNaN(d) ? iso : `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function activityEmoji(name) {
+    const n = (name||'').toLowerCase();
+    if (n.includes('run')) return '🏃';
+    if (n.includes('strength') || n.includes('weight') || n.includes('functional')) return '🏋️';
+    if (n.includes('cycle') || n.includes('bike')) return '🚴';
+    if (n.includes('swim')) return '🏊';
+    if (n.includes('sauna')) return '🔥';
+    return '⌚';
+  }
+
+  function emailInitial(label) {
+    return (label || '?').charAt(0).toUpperCase();
+  }
+
+  function renderTasks(tasks, overdue) {
+    const el = document.getElementById('tasks-panel');
+    if (!tasks || tasks.length === 0) {
+      el.innerHTML = '<div class="panel-empty">No open tasks.</div>'; return;
+    }
+    el.innerHTML = tasks.map(t => `
+      <div class="row">
+        <div class="row-main">
+          <div class="row-title">${esc(t.title)}</div>
+          ${t.due_date ? `<div class="row-sub">${fmtDate(t.due_date)}</div>` : ''}
+        </div>
+        ${priorityBadge(t.priority)}
+      </div>`).join('');
+
+    const total = (tasks[0] ? Object.keys({}) : []).length;
+    const footer = document.getElementById('tasks-footer');
+    if (footer) footer.textContent = `${tasks.length} shown`;
+    if (overdue > 0) {
+      const od = document.getElementById('tasks-overdue-footer');
+      if (od) { od.textContent = `${overdue} overdue`; od.style.display = ''; }
+    }
+  }
+
+  function renderCalendar(events, today) {
+    const el = document.getElementById('calendar-panel');
     if (!events || events.length === 0) {
-      el.innerHTML = '<div class="empty-state">No upcoming events.</div>';
-      return;
+      el.innerHTML = '<div class="panel-empty">No upcoming events.</div>'; return;
     }
     el.innerHTML = events.map(ev => {
       const d = new Date(ev.start_at);
       const day = isNaN(d) ? '--' : d.getDate();
       const month = isNaN(d) ? '--' : MONTHS[d.getMonth()];
-      const time = isNaN(d) ? '' : d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-      return `<div class="list-item">
-        <div class="date-block"><div class="day">${day}</div><div class="month">${month}</div></div>
-        <div style="flex:1">
-          <div class="list-text">${escHtml(ev.title)}</div>
-          ${time ? `<div class="list-sub">${time}${ev.location ? ' &middot; ' + escHtml(ev.location) : ''}</div>` : ''}
+      const time = fmtTime(ev.start_at);
+      return `<div class="row">
+        <div class="date-block"><div class="d">${day}</div><div class="m">${month}</div></div>
+        <div class="row-main">
+          <div class="row-title">${esc(ev.title)}</div>
+          ${time ? `<div class="row-sub">${time}${ev.location ? ' · ' + esc(ev.location) : ''}</div>` : ''}
         </div>
       </div>`;
     }).join('');
+    const footer = document.getElementById('calendar-footer');
+    if (footer) footer.textContent = `${today} event${today !== 1 ? 's' : ''} today`;
   }
 
-  function escHtml(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function renderEmail(accounts, active, pending) {
+    const el = document.getElementById('email-panel');
+    if (!accounts || accounts.length === 0) {
+      el.innerHTML = '<div class="panel-empty">No mailboxes configured.</div>'; return;
+    }
+    el.innerHTML = accounts.map(a => `
+      <div class="email-row">
+        <div class="email-avatar">${esc(emailInitial(a.label))}</div>
+        <div class="row-main">
+          <div class="email-label">${esc(a.label)}</div>
+          <div class="email-address">${esc(a.address)}</div>
+        </div>
+        ${statusBadge(a.status)}
+      </div>`).join('');
+    const footer = document.getElementById('email-footer');
+    if (footer) footer.textContent = `${active} active · ${pending} pending setup`;
   }
 
-  async function loadOverview() {
+  function renderFitness(data) {
+    const el = document.getElementById('fitness-panel');
+    const rows = [];
+
+    if (data.watch && data.watch.recentWorkouts && data.watch.recentWorkouts.length > 0) {
+      for (const w of data.watch.recentWorkouts.slice(0, 3)) {
+        const km = w.distance_km ? `${Number(w.distance_km).toFixed(1)} km` : null;
+        const kcal = w.active_energy ? `${Math.round(w.active_energy)} kcal` : null;
+        const meta = [km, kcal].filter(Boolean).join(' · ') || `${Math.round((w.duration_secs||0)/60)}m`;
+        rows.push(`<div class="fitness-row">
+          <div class="fitness-icon">${activityEmoji(w.name)}</div>
+          <div class="fitness-main">
+            <div class="fitness-name">${esc(w.name)}</div>
+            <div class="fitness-meta">${meta}</div>
+          </div>
+          <span class="row-badge badge-watch">Watch</span>
+        </div>`);
+      }
+    } else if (data.recentLogs && data.recentLogs.length > 0) {
+      for (const l of data.recentLogs.slice(0, 4)) {
+        const km = l.distance_km ? `${Number(l.distance_km).toFixed(1)} km` : null;
+        const kcal = l.calories ? `${l.calories} kcal` : null;
+        const meta = [km, kcal].filter(Boolean).join(' · ') || `${l.duration_minutes||'?'}m`;
+        rows.push(`<div class="fitness-row">
+          <div class="fitness-icon">${activityEmoji(l.activity_type)}</div>
+          <div class="fitness-main">
+            <div class="fitness-name">${esc(l.activity_type)}</div>
+            <div class="fitness-meta">${meta}</div>
+          </div>
+          <div class="fitness-val">${fmtDate(l.logged_at)}</div>
+        </div>`);
+      }
+    }
+
+    el.innerHTML = rows.length ? rows.join('') : '<div class="panel-empty">No workouts logged yet.</div>';
+
+    const watchTotal = data.watch ? data.watch.total : 0;
+    const watchKm = data.watch ? Number(data.watch.totalKm||0).toFixed(1) : '0';
+    const footer = document.getElementById('fitness-footer');
+    if (footer) footer.textContent = `${data.weekSessions} sessions this week · ${watchTotal} Watch syncs · ${watchKm} km total`;
+  }
+
+  function renderLinkedIn(li) {
+    const el = document.getElementById('li-panel');
+    el.innerHTML = `
+      <div class="li-stats">
+        <div class="li-stat">
+          <div class="li-stat-val">${li.profiles}</div>
+          <div class="li-stat-label">Scraped profiles</div>
+        </div>
+        <div class="li-stat">
+          <div class="li-stat-val">${li.segments}</div>
+          <div class="li-stat-label">Segments</div>
+        </div>
+        <div class="li-stat">
+          <div class="li-stat-val">${li.outreachWeek}</div>
+          <div class="li-stat-label">Outreach this week</div>
+        </div>
+        <div class="li-stat">
+          <div class="li-stat-val">${li.activeCampaigns}</div>
+          <div class="li-stat-label">Active campaigns</div>
+        </div>
+      </div>`;
+    const footer = document.getElementById('li-footer');
+    if (footer) footer.textContent = `${li.activeCampaigns} campaign${li.activeCampaigns !== 1 ? 's' : ''} running`;
+  }
+
+  function renderInvestment(inv) {
+    const el = document.getElementById('inv-panel');
+    el.innerHTML = `
+      <div class="inv-row"><span class="inv-label">Watchlist (active)</span><span class="inv-val">${inv.watchlist}</span></div>
+      <div class="inv-row"><span class="inv-label">Portfolio holdings</span><span class="inv-val">${inv.holdings}</span></div>
+    `;
+    const footer = document.getElementById('inv-footer');
+    if (footer) footer.textContent = `${inv.watchlist} assets tracked`;
+  }
+
+  async function loadDashboard() {
     try {
-      const res = await fetch('/api/pa/overview');
-      if (!res.ok) throw new Error('API error');
-      const data = await res.json();
+      const [ovRes, dashRes] = await Promise.all([
+        fetch('/api/pa/overview'),
+        fetch('/api/pa/dashboard'),
+      ]);
+      const ov = ovRes.ok ? await ovRes.json() : {};
+      const d = dashRes.ok ? await dashRes.json() : {};
 
-      const todoCount = data.taskCounts?.todo ?? 0;
-      setStat('stat-tasks', todoCount);
-      setStat('stat-events', Array.isArray(data.upcomingEvents) ? data.upcomingEvents.length : (data.upcomingEvents ?? 0));
-      setStat('stat-drafts', data.draftCount ?? 0);
-      setStat('stat-fitness', data.recentFitness ?? 0);
-      setStat('stat-email', data.emailAccounts ?? 0);
-
-      document.getElementById('nav-tasks-badge').textContent = todoCount;
-      const evCount = Array.isArray(data.upcomingEvents) ? data.upcomingEvents.length : (data.upcomingEvents ?? 0);
-      document.getElementById('nav-cal-badge').textContent = evCount;
-
-      if (data.dailyBriefing) {
-        document.getElementById('briefing-text').textContent = data.dailyBriefing;
+      if (ov.dailyBriefing) {
+        document.getElementById('briefing-text').textContent = ov.dailyBriefing;
+        document.getElementById('briefing-time').textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         document.getElementById('briefing-wrap').style.display = '';
       }
 
-      renderTasks(data.recentTasks || []);
-      renderEvents(Array.isArray(data.upcomingEvents) ? data.upcomingEvents : []);
-    } catch (e) {
-      ['stat-tasks','stat-events','stat-drafts','stat-fitness','stat-email'].forEach(id => setStat(id, '--'));
-      document.getElementById('tasks-list').innerHTML = '<div class="empty-state">Could not load tasks.</div>';
-      document.getElementById('events-list').innerHTML = '<div class="empty-state">Could not load events.</div>';
+      const tasks = d.tasks || {};
+      const cal = d.calendar || {};
+      const email = d.email || {};
+      const social = d.social || {};
+      const fitness = d.fitness || {};
+      const li = d.linkedin || {};
+      const inv = d.investment || {};
+
+      const openTasks = (tasks.counts?.todo || 0) + (tasks.counts?.in_progress || 0);
+      const overdueTasks = tasks.overdue || 0;
+
+      setVal('v-open-tasks', openTasks);
+      setSub('s-open-tasks', `${tasks.counts?.in_progress || 0} in progress`);
+      if (overdueTasks > 0) document.getElementById('kpi-overdue').classList.add('alert');
+      setVal('v-overdue', overdueTasks);
+      setSub('s-overdue', 'tasks past due');
+      setVal('v-cal-today', cal.today || 0);
+      setSub('s-cal-next', cal.upcoming ? `${cal.upcoming} upcoming` : 'none scheduled');
+      setVal('v-email', email.total || 0);
+      setSub('s-email', `${email.active || 0} active · ${email.pending || 0} pending`);
+      setVal('v-social', social.drafts || 0);
+      setSub('s-social', social.scheduled ? `${social.scheduled} scheduled` : 'ready to publish');
+      const weekSessions = (fitness.weekSessions || 0) + (fitness.watch?.recentWorkouts?.length || 0);
+      setVal('v-fitness', fitness.weekSessions || 0);
+      setSub('s-fitness', `${Number(fitness.watch?.totalKm || 0).toFixed(1)} km via Watch`);
+      setVal('v-li', li.profiles || 0);
+      setSub('s-li', `${li.segments || 0} segments`);
+
+      document.getElementById('nav-tasks-badge').textContent = openTasks;
+      document.getElementById('nav-cal-badge').textContent = cal.upcoming || 0;
+      document.getElementById('nav-email-badge').textContent = email.pending || 0;
+
+      document.getElementById('mod-tasks-count').textContent = `${openTasks} open`;
+      document.getElementById('mod-cal-count').textContent = `${cal.today || 0} today`;
+      document.getElementById('mod-email-count').textContent = `${email.total || 0} mailboxes`;
+      document.getElementById('mod-social-count').textContent = `${social.drafts || 0} drafts`;
+      document.getElementById('mod-fitness-count').textContent = `${fitness.weekSessions || 0} this week`;
+      document.getElementById('mod-inv-count').textContent = `${inv.watchlist || 0} tracked`;
+      document.getElementById('mod-li-count').textContent = `${li.profiles || 0} profiles`;
+
+      renderTasks(tasks.recent || [], overdueTasks);
+      renderCalendar(cal.events || [], cal.today || 0);
+      renderEmail(email.accounts || [], email.active || 0, email.pending || 0);
+      renderFitness(fitness);
+      renderLinkedIn(li);
+      renderInvestment(inv);
+
+      const footer = document.getElementById('tasks-footer');
+      if (footer) footer.textContent = `${openTasks} open · ${tasks.counts?.done || 0} done`;
+
+    } catch(e) {
+      console.error('Dashboard load error', e);
     }
   }
 
-  loadOverview();
+  document.getElementById('refresh-btn').addEventListener('click', loadDashboard);
+
+  loadDashboard();
 </script>
 </body>
 </html>

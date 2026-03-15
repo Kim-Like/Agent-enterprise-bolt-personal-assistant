@@ -1803,6 +1803,47 @@ export function initControlPlaneDb(env) {
         const emailAccounts = connection.prepare(`SELECT COUNT(*) as count FROM pa_email_accounts`).get()?.count || 0;
         return { taskCounts, upcomingEvents, draftCount, recentFitness, emailAccounts };
       },
+      fullDashboard() {
+        const now = nowIso();
+        const taskCounts = connection.prepare(`SELECT status, COUNT(*) as count FROM pa_tasks GROUP BY status`).all().reduce((acc, r) => { acc[r.status] = r.count; return acc; }, {});
+        const highPriorityTasks = connection.prepare(`SELECT COUNT(*) as c FROM pa_tasks WHERE priority='high' AND status != 'done'`).get()?.c || 0;
+        const overdueTasks = connection.prepare(`SELECT COUNT(*) as c FROM pa_tasks WHERE due_date < date('now') AND status != 'done'`).get()?.c || 0;
+        const upcomingEventCount = connection.prepare(`SELECT COUNT(*) as c FROM pa_calendar_events WHERE start_at >= ?`).get(now)?.c || 0;
+        const nextEvent = connection.prepare(`SELECT * FROM pa_calendar_events WHERE start_at >= ? ORDER BY start_at ASC LIMIT 1`).get(now) || null;
+        const todayEventCount = connection.prepare(`SELECT COUNT(*) as c FROM pa_calendar_events WHERE date(start_at) = date('now')`).get()?.c || 0;
+        const emailAccountCount = connection.prepare(`SELECT COUNT(*) as c FROM pa_email_accounts`).get()?.c || 0;
+        const emailActiveCount = connection.prepare(`SELECT COUNT(*) as c FROM pa_email_accounts WHERE status='active'`).get()?.c || 0;
+        const emailPendingCount = connection.prepare(`SELECT COUNT(*) as c FROM pa_email_accounts WHERE status='pending'`).get()?.c || 0;
+        const emailAccounts = connection.prepare(`SELECT id,label,address,provider,status FROM pa_email_accounts ORDER BY label ASC`).all();
+        const draftCount = connection.prepare(`SELECT COUNT(*) as c FROM pa_social_drafts WHERE status='draft'`).get()?.c || 0;
+        const scheduledCount = connection.prepare(`SELECT COUNT(*) as c FROM pa_social_drafts WHERE status='scheduled'`).get()?.c || 0;
+        const recentFitnessWeek = connection.prepare(`SELECT COUNT(*) as c FROM pa_fitness_logs WHERE logged_at >= date('now','-7 days')`).get()?.c || 0;
+        const recentFitnessMonth = connection.prepare(`SELECT COUNT(*) as c FROM pa_fitness_logs WHERE logged_at >= date('now','-30 days')`).get()?.c || 0;
+        const totalCaloriesWeek = connection.prepare(`SELECT COALESCE(SUM(calories),0) as s FROM pa_fitness_logs WHERE logged_at >= date('now','-7 days')`).get()?.s || 0;
+        const watchWorkouts = connection.prepare(`SELECT COUNT(*) as c FROM pa_watch_workouts`).get()?.c || 0;
+        const watchKm = connection.prepare(`SELECT COALESCE(SUM(distance_km),0) as s FROM pa_watch_workouts`).get()?.s || 0;
+        const watchLastSync = connection.prepare(`SELECT MAX(ingested_at) as t FROM pa_watch_workouts`).get()?.t || null;
+        const liProfiles = connection.prepare(`SELECT COUNT(*) as c FROM pa_li_scraped_profiles`).get()?.c || 0;
+        const liSegments = connection.prepare(`SELECT COUNT(*) as c FROM pa_li_segments`).get()?.c || 0;
+        let liOutreachWeek = 0, activeCampaigns = 0;
+        try { liOutreachWeek = connection.prepare(`SELECT COUNT(*) as c FROM pa_li_outreach_queue WHERE created_at >= date('now','-7 days')`).get()?.c || 0; } catch(_){}
+        try { activeCampaigns = connection.prepare(`SELECT COUNT(*) as c FROM pa_li_campaigns WHERE status='active'`).get()?.c || 0; } catch(_){}
+        const invWatchlist = connection.prepare(`SELECT COUNT(*) as c FROM pa_inv_watchlist WHERE enabled=1`).get()?.c || 0;
+        const invHoldings = connection.prepare(`SELECT COUNT(*) as c FROM pa_inv_portfolio_holdings`).get()?.c || 0;
+        const recentTasks = connection.prepare(`SELECT * FROM pa_tasks WHERE status != 'done' ORDER BY CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, created_at DESC LIMIT 6`).all().map(t => ({ ...t, tags: JSON.parse(t.tags || '[]') }));
+        const upcomingEvents = connection.prepare(`SELECT * FROM pa_calendar_events WHERE start_at >= ? ORDER BY start_at ASC LIMIT 5`).get ? connection.prepare(`SELECT * FROM pa_calendar_events WHERE start_at >= ? ORDER BY start_at ASC LIMIT 5`).all(now) : [];
+        const recentLogs = connection.prepare(`SELECT * FROM pa_fitness_logs ORDER BY logged_at DESC LIMIT 4`).all();
+        const recentWatchWorkouts = connection.prepare(`SELECT id,name,start_date,duration_secs,distance_km,hr_avg,active_energy FROM pa_watch_workouts ORDER BY start_date DESC LIMIT 4`).all();
+        return {
+          tasks: { counts: taskCounts, highPriority: highPriorityTasks, overdue: overdueTasks, recent: recentTasks },
+          calendar: { upcoming: upcomingEventCount, today: todayEventCount, next: nextEvent, events: upcomingEvents },
+          email: { total: emailAccountCount, active: emailActiveCount, pending: emailPendingCount, accounts: emailAccounts },
+          social: { drafts: draftCount, scheduled: scheduledCount },
+          fitness: { weekSessions: recentFitnessWeek, monthSessions: recentFitnessMonth, weekCalories: totalCaloriesWeek, recentLogs, watch: { total: watchWorkouts, totalKm: watchKm, lastSync: watchLastSync, recentWorkouts: recentWatchWorkouts } },
+          linkedin: { profiles: liProfiles, segments: liSegments, outreachWeek: liOutreachWeek, activeCampaigns },
+          investment: { watchlist: invWatchlist, holdings: invHoldings },
+        };
+      },
     },
     li: {
       listProfiles({ city, skills, interests, segmentId, search, limit = 50, offset = 0 } = {}) {
@@ -2174,6 +2215,21 @@ export function initControlPlaneDb(env) {
   db.setMeta("public_origin", env.publicOrigin);
   db.setMeta("last_boot_at", nowIso());
   db.setBookmark("server", "booted", { host: env.host, port: env.port });
+
+  const DEFAULT_EMAIL_ACCOUNTS = [
+    { id: "email-seed-001", label: "Lavpris Hjemmeside", address: "info@lavprishjemmeside.dk", provider: "cpanel-imap", status: "pending", notes: "Primary info mailbox for lavprishjemmeside.dk" },
+    { id: "email-seed-002", label: "AI Enterprise", address: "info@ai-enterprise.dk", provider: "cpanel-imap", status: "pending", notes: "Primary info mailbox for ai-enterprise.dk" },
+    { id: "email-seed-003", label: "Third Wave", address: "info@thirdwave.dk", provider: "cpanel-imap", status: "pending", notes: "Primary info mailbox for thirdwave.dk" },
+    { id: "email-seed-004", label: "The Artisan", address: "info@theartisan.dk", provider: "cpanel-imap", status: "pending", notes: "Primary info mailbox for theartisan.dk" },
+    { id: "email-seed-005", label: "Kim — AI Enterprise", address: "kim-like@ai-enterprise.dk", provider: "cpanel-imap", status: "pending", notes: "Personal mailbox on ai-enterprise.dk" },
+    { id: "email-seed-006", label: "Kim — The Artisan", address: "kimjeppesen@theartisan.dk", provider: "cpanel-imap", status: "pending", notes: "Personal mailbox on theartisan.dk" },
+  ];
+  const seedEmailStmt = connection.prepare(`INSERT OR IGNORE INTO pa_email_accounts (id,label,address,provider,status,notes,created_at,updated_at) VALUES (@id,@label,@address,@provider,@status,@notes,@created_at,@updated_at)`);
+  const seedEmailTx = connection.transaction((rows) => {
+    const now = nowIso();
+    for (const r of rows) seedEmailStmt.run({ ...r, created_at: now, updated_at: now });
+  });
+  seedEmailTx(DEFAULT_EMAIL_ACCOUNTS);
 
   return db;
 }

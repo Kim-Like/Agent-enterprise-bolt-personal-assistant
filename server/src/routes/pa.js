@@ -71,6 +71,7 @@ export async function paRoutes(app) {
   const db = app.controlPlane.db;
 
   app.get("/api/pa/overview", async () => buildOverviewPayload(db));
+  app.get("/api/pa/dashboard", async () => ({ generatedAt: nowIso(), ...db.pa.fullDashboard() }));
 
   app.get("/api/pa/tasks", async (request) => {
     const { status } = request.query;
